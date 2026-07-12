@@ -10,7 +10,7 @@ export function fetchBuffer(url, allowlist, maxRedirects = 3) {
       } catch (e) {
         return reject(e)
       }
-      const req = get(u, (res) => {
+      const req = get(u, { headers: { "User-Agent": "worldant-installer" } }, (res) => {
         const status = res.statusCode ?? 0
         if (status >= 300 && status < 400 && res.headers.location) {
           res.resume()
