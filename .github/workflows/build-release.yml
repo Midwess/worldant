@@ -6,7 +6,7 @@ on:
       version:
         description: Exact version
         required: true
-        default: 1.0.6
+        default: 1.0.7
       source_ref:
         description: Private source branch, tag, or SHA
         required: true
