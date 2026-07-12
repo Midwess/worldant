@@ -9,6 +9,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.5] — 2026-07-12
+
+### Added
+- `worldant init` now prints the template URL, manifest file count, every downloaded template file,
+  every written file, the generated namespace, and next commands.
+- `worldant build` and `worldant serve` now print the data mode, namespace, generated snapshot
+  paths, artifact counts, generated schema paths, and generated `llms.txt` path.
+- `worldant serve` now prints HTTP request/response status lines and websocket profile request
+  outcomes without dumping payloads or auth headers.
+
 ## [1.0.4] — 2026-07-12
 
 ### Added
@@ -36,7 +46,8 @@ prior private release scheme; those historical tags and releases remain with the
 and are **not** republished here. `1.0.0` marks the start of the signed, immutable public
 distribution — it is not a continuation of the private `0.x` source-release line.
 
-[Unreleased]: https://github.com/Midwess/worldant/compare/v1.0.4...HEAD
+[Unreleased]: https://github.com/Midwess/worldant/compare/v1.0.5...HEAD
+[1.0.5]: https://github.com/Midwess/worldant/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/Midwess/worldant/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/Midwess/worldant/compare/v1.0.2...v1.0.3
 [1.0.0]: https://github.com/Midwess/worldant/releases/tag/v1.0.0
