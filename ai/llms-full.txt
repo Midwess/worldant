@@ -33,6 +33,47 @@ journal. Durable calls are correlated by position and replay returns recorded va
 Steps are internal Workflow IO checkpoints. A Step gets one kernel-owned transaction for database
 effects, transaction-bound Workflow scheduling, Step output, and durable completion.
 
+A Workflow default-imports its Steps by relative path and awaits them like plain functions. Named
+Step imports are rejected at build time. Workflows may only import `sleep` and `waitForEvent` from
+`worldant`; database access belongs in Steps:
+
+```ts
+// workflows/remind.ts
+import { sleep } from "worldant"
+import loadItem from "./steps/loadItem.ts"
+import sendReminder from "./steps/sendReminder.ts"
+
+export default async function remind(input: { id: number; delayMs: number }) {
+  await sleep(input.delayMs)
+  const item = await loadItem({ id: input.id })
+  if (item.done) return { reminded: false }
+  return sendReminder({ id: item.id, title: item.title })
+}
+```
+
+```ts
+// workflows/steps/loadItem.ts
+import { db, sql } from "worldant"
+
+export default async function loadItem(input: { id: number }) {
+  return db.one<{ id: number; title: string; done: boolean }>(sql`
+    select id, title, done from todo_items where id = ${input.id}
+  `)
+}
+```
+
+```ts
+// workflows/steps/sendReminder.ts
+import { emit } from "worldant"
+
+export default async function sendReminder(input: { id: number; title: string }) {
+  emit("todo.reminder", { id: input.id, title: input.title })
+  return { reminded: true }
+}
+```
+
+On replay a committed Step returns its stored output without repeating database effects.
+
 ## Configuration
 
 An optional `worldant.ts` exports static settings and middleware:
