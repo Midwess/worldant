@@ -38,6 +38,5 @@ WITH CHECK (
 Do not trust raw client headers in production unless they have been validated by a trusted gateway,
 middleware, or SQL function.
 
-Root `worldant.policy.sql` can define `worldant_owner(headers jsonb)` and alter fixed kernel
-policies for event/run ownership. Application-table RLS belongs in migrations.
-
+Root `worldant.policy.json` can select kernel event visibility with `events` and `ownerHeader`.
+Application-table RLS belongs in migrations.

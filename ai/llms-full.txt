@@ -79,5 +79,4 @@ When authoring a world:
 3. Use Workflows for durable orchestration and waits.
 4. Put IO checkpoints in internal Steps.
 5. Put application RLS in migrations.
-6. Put kernel event/run ownership policy in `worldant.policy.sql` only when needed.
-
+6. Put kernel event visibility policy in `worldant.policy.json` only when needed.

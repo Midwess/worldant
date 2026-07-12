@@ -100,8 +100,8 @@ WITH CHECK (
 ```
 
 Do not trust raw client headers in production unless a trusted gateway, middleware, or SQL function
-has validated them. Root `worldant.policy.sql` can define `worldant_owner(headers jsonb)` and alter
-fixed kernel policies; application-table RLS belongs in app migrations.
+has validated them. Root `worldant.policy.json` can select kernel event visibility with `events`
+and `ownerHeader`; application-table RLS belongs in app migrations.
 
 ## Common Mistakes
 
@@ -111,4 +111,3 @@ fixed kernel policies; application-table RLS belongs in app migrations.
 - Do not put nondeterministic IO in a Workflow body.
 - Do not treat middleware context as SQL identity; SQL sees original request headers.
 - Do not hard-code deployment URLs into generated packages or declarations.
-

@@ -1,6 +1,6 @@
 ---
 title: Configuration
-description: Snapshot-pinned settings, middleware, request headers, and kernel policy SQL.
+description: Snapshot-pinned settings, middleware, request headers, and kernel event policy.
 ---
 
 An optional root `worldant.ts` exports static node settings and middleware:
@@ -31,14 +31,15 @@ return a unary response.
 Subject, operation, origin, and original headers are immutable. SQL RLS sees original request
 headers through `request.headers`.
 
-An optional root `worldant.policy.sql` is pinned into the snapshot and applied during activation.
-It may define:
+An optional root `worldant.policy.json` declaratively selects kernel event visibility:
 
-```sql
-CREATE OR REPLACE FUNCTION worldant_owner(headers jsonb) RETURNS text
-LANGUAGE sql STABLE SECURITY INVOKER
-AS $$ SELECT headers->>'authorization' $$;
+```json
+{
+  "ownerHeader": "authorization",
+  "events": "ownerOrPublic"
+}
 ```
 
-It may also alter fixed kernel runtime policies. Application-table RLS remains in migrations.
-
+`events` accepts `hidden`, `public`, `owner`, or `ownerOrPublic` and defaults to `hidden`.
+`owner` and `ownerOrPublic` require `ownerHeader`. Worldant validates and snapshots this JSON, then
+applies fixed generated SQL during activation. Application-table RLS remains in migrations.
