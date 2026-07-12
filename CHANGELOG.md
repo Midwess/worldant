@@ -9,6 +9,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.6] — 2026-07-12
+
+### Added
+- `worldant serve` now starts and announces the WebTransport endpoint alongside the websocket
+  endpoint, including the self-signed certificate hash needed by WebTransport clients.
+- If WebTransport cannot bind, `serve` prints the failure instead of staying silent.
+
 ## [1.0.5] — 2026-07-12
 
 ### Added
@@ -46,7 +53,8 @@ prior private release scheme; those historical tags and releases remain with the
 and are **not** republished here. `1.0.0` marks the start of the signed, immutable public
 distribution — it is not a continuation of the private `0.x` source-release line.
 
-[Unreleased]: https://github.com/Midwess/worldant/compare/v1.0.5...HEAD
+[Unreleased]: https://github.com/Midwess/worldant/compare/v1.0.6...HEAD
+[1.0.6]: https://github.com/Midwess/worldant/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/Midwess/worldant/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/Midwess/worldant/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/Midwess/worldant/compare/v1.0.2...v1.0.3
