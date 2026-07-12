@@ -49,7 +49,7 @@ test("assertSignerResolved accepts a resolved public identity", () => {
     assertSignerResolved({
       sigstore: {
         certificateIssuer: "https://token.actions.githubusercontent.com",
-        certificateIdentity: "https://github.com/Midwess/worldant/.github/workflows/sign.yml@refs/heads/main",
+        certificateIdentity: "https://github.com/Midwess/worldant/.github/workflows/build-release.yml@refs/heads/main",
       },
     }),
   )
@@ -71,6 +71,6 @@ test("toAnchoredIdentityPattern matches only the exact identity (no sibling-ref 
   const re = new RegExp(toAnchoredIdentityPattern(id))
   assert.ok(re.test(id), "exact identity must match")
   assert.ok(!re.test(id + "-evil"), "sibling ref must not match (anchored)")
-  assert.ok(!re.test(id.replace("sign.yml", "signXyml")), "dot must be escaped, not a wildcard")
-  assert.ok(!re.test("https://github.com/attacker/worldant/.github/workflows/sign.yml@refs/heads/main"), "other owner must not match")
+  assert.ok(!re.test(id.replace("build-release.yml", "build-releaseXyml")), "dot must be escaped, not a wildcard")
+  assert.ok(!re.test("https://github.com/attacker/worldant/.github/workflows/build-release.yml@refs/heads/main"), "other owner must not match")
 })

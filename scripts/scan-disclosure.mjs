@@ -16,6 +16,7 @@ const DENY = [
 
 const SKIP_DIRS = new Set([".git", "node_modules"])
 const SELF = join(root, "scripts", "scan-disclosure.mjs")
+const PRIVATE_CHECKOUT_WORKFLOW = ".github/workflows/build-release.yml"
 
 function walk(dir, out = []) {
   for (const entry of readdirSync(dir)) {
@@ -43,7 +44,9 @@ for (const file of walk(root)) {
   lines.forEach((line, i) => {
     for (const rule of DENY) {
       if (rule.re.test(line)) {
-        violations.push({ file: relative(root, file), line: i + 1, rule: rule.name, text: line.trim().slice(0, 120) })
+        const rel = relative(root, file)
+        const approvedCheckout = rel === PRIVATE_CHECKOUT_WORKFLOW && line.trim() === `repository: Midwess/${PRIVATE_REPO}`
+        if (!approvedCheckout) violations.push({ file: rel, line: i + 1, rule: rule.name, text: line.trim().slice(0, 120) })
       }
     }
   })

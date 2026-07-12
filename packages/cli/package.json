@@ -27,7 +27,7 @@
     "test": "node --test ../../test/*.test.mjs"
   },
   "dependencies": {
-    "sigstore": "^3.0.0",
+    "sigstore": "^4.1.1",
     "tar": "^7.4.3"
   }
 }

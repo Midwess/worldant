@@ -1,0 +1,125 @@
+name: Build and release Worldant
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact version
+        required: true
+        default: 1.0.0
+      source_ref:
+        description: Private source branch, tag, or SHA
+        required: true
+        default: release/1.0.0-source
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: build-release-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build ${{ matrix.key }}
+    environment: release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-14
+            target: aarch64-apple-darwin
+            key: darwin-arm64
+          - runner: macos-14
+            target: x86_64-apple-darwin
+            key: darwin-x64
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            key: linux-x64
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            key: linux-arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Check out private release source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: Midwess/worldant-internal
+          ref: ${{ inputs.source_ref }}
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          submodules: recursive
+          path: source
+      - uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+      - name: Build CLI
+        working-directory: source
+        env:
+          CARGO_INCREMENTAL: "0"
+        run: |
+          sed -i.bak 's/^version = ".*"/version = "${{ inputs.version }}"/' Cargo.toml
+          rm -f Cargo.toml.bak
+          cargo build --release --target "${{ matrix.target }}" -p worldant-cli --bin worldant
+      - name: Package binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          version='${{ inputs.version }}'
+          key='${{ matrix.key }}'
+          mkdir -p package/bin
+          cp "source/target/${{ matrix.target }}/release/worldant" package/bin/worldant
+          chmod +x package/bin/worldant
+          tar -C package -czf "worldant-${version}-${key}.tar.gz" bin/worldant
+      - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+        with:
+          name: worldant-${{ matrix.key }}
+          path: worldant-${{ inputs.version }}-${{ matrix.key }}.tar.gz
+          if-no-files-found: error
+
+  release:
+    name: Sign, publish, and verify
+    needs: build
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+        with:
+          pattern: worldant-*
+          merge-multiple: true
+          path: release-assets
+      - uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da
+      - name: Assemble release evidence and manifest
+        env:
+          VERSION: ${{ inputs.version }}
+          SOURCE_REF: ${{ inputs.source_ref }}
+        run: node scripts/assemble-release.mjs
+      - name: Sign manifest and provenance
+        run: |
+          cosign sign-blob --yes --bundle release-assets/release-manifest.json.sigstore release-assets/release-manifest.json
+      - name: Create draft release and upload every asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          gh release view "v$VERSION" >/dev/null 2>&1 || gh release create "v$VERSION" --draft --title "Worldant v$VERSION" --notes-file CHANGELOG.md
+          gh release upload "v$VERSION" release-assets/* --clobber
+      - name: Publish scoped npm installer
+        working-directory: packages/cli
+        run: npm publish --access public --provenance
+      - name: Verify npm publication
+        env:
+          VERSION: ${{ inputs.version }}
+        run: test "$(npm view @midwess/worldant@"$VERSION" version)" = "$VERSION"
+      - name: Finalize GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: gh release edit "v$VERSION" --draft=false --latest
