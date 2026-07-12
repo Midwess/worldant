@@ -1,0 +1,46 @@
+declare module "worldant" {
+  /**
+   * Tagged SQL template: sql`select * from items where id = ${id}` binds values as parameters.
+   * Values bind as JSON: arrays and objects arrive as jsonb (a JS array is NOT a Postgres array,
+   * so `= any(${arr})` fails — unnest with `jsonb_array_elements_text(${arr})` instead), and
+   * uuid parameters need an explicit cast (`${id}::uuid`).
+   */
+  export function sql(strings: TemplateStringsArray, ...values: unknown[]): SqlQuery;
+  export type SqlQuery = { text: string; params: unknown[] };
+
+  export type Tx = {
+    /** First row as an object. Rejects when the query returns zero rows — use `many` when absence is expected. */
+    one<T = Record<string, unknown>>(query: SqlQuery): Promise<T>;
+    many<T = Record<string, unknown>>(query: SqlQuery): Promise<T[]>;
+    /** Resolves to the number of affected rows. */
+    exec(query: SqlQuery): Promise<number>;
+  };
+
+  export type Db = Tx & {
+    /**
+     * One explicit transaction over the callback-scoped `tx` handle (Commands only; unavailable
+     * in Steps, whose db operations already join one kernel-owned transaction). Callback
+     * resolution commits; rejection rolls back and rethrows. Nesting is not supported.
+     */
+    transaction<T>(callback: (tx: Tx) => Promise<T>): Promise<T>;
+  };
+
+  /**
+   * Database access for Commands and Steps. Each standalone db operation owns an independent
+   * transaction. Type parameters are assertions only — results are not checked against your
+   * schema at build time.
+   */
+  export const db: Db;
+
+  /** Emit a kernel event. Available in Commands and Steps. */
+  export function emit(kind: string, payload?: unknown): void;
+
+  /** Durable deterministic pause. Workflows only. */
+  export function sleep(ms: number): Promise<void>;
+
+  /** Durable wait until a matching event arrives. Workflows only. */
+  export function waitForEvent(kind: string, condition?: unknown): Promise<unknown>;
+
+  /** Type-level schema helper; erased at build time, inert at runtime. */
+  export const z: any;
+}
