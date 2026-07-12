@@ -55,10 +55,13 @@ export default async function loadItem(input: { id: number }) {
 import { emit } from "worldant"
 
 export default async function sendReminder(input: { id: number; title: string }) {
-  emit("todo.reminder", { id: input.id, title: input.title })
+  await emit("reminder", { id: input.id, title: input.title })
   return { reminded: true }
 }
 ```
+
+The runtime prefixes the app onto emitted kinds: `emit("reminder")` in app `todo` stores kind
+`todo.reminder`, which is what event waits and client filters match against.
 
 On replay a committed Step returns its stored output without repeating database effects.
 
