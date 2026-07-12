@@ -43,4 +43,30 @@ declare module "worldant" {
 
   /** Type-level schema helper; erased at build time, inert at runtime. */
   export const z: any;
+
+  /**
+   * Served-ingress middleware for the root worldant.ts config. Runs before unary decoding and
+   * once when a subscription is established. Subject, operation, origin, and original headers
+   * are immutable; middleware may replace payload and opaque context or return a unary response.
+   */
+  export type Middleware = (
+    request: { readonly headers: Record<string, string>; readonly payload: unknown },
+    context: unknown,
+    next: (payload: unknown, context: unknown) => Promise<unknown>,
+  ) => unknown;
+
+  /** Static node settings for the optional root worldant.ts. */
+  export type NodeConfig = {
+    name?: string;
+    listen?: string;
+    dsn?: string;
+    dataDir?: string;
+    poolMaxConnections?: number;
+    maxWorkflowWorkers?: number;
+    schedulerThreads?: number;
+    mailboxCap?: number;
+    replicaCap?: number;
+    warmSetBudget?: number;
+    middleware?: Middleware[];
+  };
 }
