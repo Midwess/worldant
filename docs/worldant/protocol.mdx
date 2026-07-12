@@ -1,0 +1,35 @@
+---
+title: Protocol
+description: Worldant client calls, runs, subscriptions, catalog, and knowledge text.
+---
+
+Worldant exposes a running world through one WebSocket endpoint:
+
+```text
+GET /__worldant/v1/ws
+```
+
+The public profile exposes:
+
+- `Call` for Commands.
+- `Run` for Workflows.
+- Subscription streams for events, synced collections, and run status.
+- Catalog and AI knowledge payloads.
+
+Plain text knowledge is also available:
+
+```text
+GET /__worldant/v1/llms.txt
+GET /__worldant/v1/knowledge/:app.d.ts
+```
+
+Use the generic client:
+
+```ts
+import { createWorld } from "worldant-client"
+
+const world = createWorld({ url: "ws://127.0.0.1:8787/__worldant/v1/ws" })
+```
+
+Generated artifacts do not bake deployment addresses.
+

@@ -1,0 +1,20 @@
+{
+  "title": "Worldant",
+  "description": "Filesystem-authored Commands, durable Workflows, PostgreSQL truth, and AI-readable runtime surfaces.",
+  "github": "https://github.com/Midwess/worldant",
+  "pages": [
+    "index",
+    "installation",
+    "quickstart",
+    "how-it-works",
+    "database",
+    "commands",
+    "workflows",
+    "adr-command-transactions",
+    "protocol",
+    "reactive",
+    "supervisor",
+    "configuration"
+  ]
+}
+

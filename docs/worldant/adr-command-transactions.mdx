@@ -1,0 +1,17 @@
+---
+title: Command transactions
+description: Standalone Command commits, explicit transactions, and Step transactions.
+---
+
+Commands have no implicit handler-wide transaction. Each standalone database operation commits
+before its promise resolves or rolls back on failure.
+
+Use `db.transaction(callback)` for an explicit Command transaction. Only calls through the callback
+`tx` handle join that transaction.
+
+Steps are different. A Step has one kernel-owned transaction for database effects plus durable
+completion. Application-authored `db.transaction` is unavailable inside Steps.
+
+This keeps immediate Command effects explicit while preserving exactly-once database effects for
+committed Step boundaries.
+

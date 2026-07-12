@@ -1,0 +1,43 @@
+---
+title: Database and authorization
+description: PostgreSQL truth, migrations, request headers, and row-level security.
+---
+
+Worldant uses one PostgreSQL data plane as durable truth and realtime source.
+
+Applications define schema with ordered SQL migrations. Generated TypeScript schema files are
+derived output and should not be edited.
+
+## Authorization
+
+Worldant does not define users, JWTs, claims, tenants, or token validation. Applications bring
+their own authentication and authorization model.
+
+For served requests, Worldant exposes custom headers to SQL as transaction-local JSON:
+
+```sql
+current_setting('request.headers', true)::jsonb
+```
+
+Application-table authorization is normal PostgreSQL row-level security:
+
+```sql
+ALTER TABLE todos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE todos FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY todos_owner ON todos
+TO worldant_runtime
+USING (
+  owner_id = current_setting('request.headers', true)::jsonb->>'authorization'
+)
+WITH CHECK (
+  owner_id = current_setting('request.headers', true)::jsonb->>'authorization'
+);
+```
+
+Do not trust raw client headers in production unless they have been validated by a trusted gateway,
+middleware, or SQL function.
+
+Root `worldant.policy.sql` can define `worldant_owner(headers jsonb)` and alter fixed kernel
+policies for event/run ownership. Application-table RLS belongs in migrations.
+

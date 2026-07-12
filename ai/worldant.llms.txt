@@ -1,0 +1,114 @@
+# Worldant
+
+Worldant is a filesystem-authored runtime for immediate application functions and durable
+processes. A build freezes source into an immutable run snapshot. The host runs snapshots, not the
+working tree.
+
+## Read First
+
+- Human docs: `docs/worldant/index.mdx`
+- Quickstart: `docs/worldant/quickstart.mdx`
+- Commands: `docs/worldant/commands.mdx`
+- Workflows: `docs/worldant/workflows.mdx`
+- Database and auth: `docs/worldant/database.mdx`
+- Configuration and middleware: `docs/worldant/configuration.mdx`
+
+## Current Model
+
+Worldant has two public callable concepts:
+
+- Command: immediate, non-durable function under `commands/` or `apps/<app>/commands/`.
+- Workflow: durable deterministic orchestration under `workflows/` or `apps/<app>/workflows/`.
+
+Steps live under `workflows/steps/` or `apps/<app>/workflows/steps/`. They are internal Workflow IO
+checkpoints and are not public callables.
+
+Removed concepts are not available: Query, Mutation, Reactive/Rule, Goal, generic Action, and
+public Step APIs.
+
+## Client Use
+
+Use the generic client handle:
+
+```ts
+import { createWorld } from "worldant-client"
+
+const world = createWorld({ url: "ws://127.0.0.1:8787/__worldant/v1/ws" })
+const result = await world.todo.add({ id: "t1", title: "Buy milk", done: false })
+```
+
+Commands return one result immediately. Use an idempotency key when retrying a write:
+
+```ts
+await world.todo.add(input, { key: "todo:t1:add" })
+```
+
+Workflows need two awaits:
+
+```ts
+const run = await world.todo.remind(input)
+const output = await run.handle
+```
+
+## Authoring
+
+Commands import supported capabilities from `worldant`:
+
+```ts
+import { db, sql } from "worldant"
+
+export default async function add(input) {
+  await db.exec(sql`insert into todos (id, title, done) values (${input.id}, ${input.title}, false)`)
+  return db.one(sql`select * from todos where id = ${input.id}`)
+}
+```
+
+Standalone Command `db.one`, `db.many`, and `db.exec` calls commit independently. Use
+`db.transaction(async (tx) => ...)` when several Command database effects must commit together.
+
+Workflow bodies orchestrate deterministic work. They call Steps, child Workflows, and durable wait
+primitives. They do not directly access database, network, filesystem, ambient timers, randomness,
+or other nondeterministic APIs.
+
+Steps perform supported IO for Workflows. Step database effects and durable completion share one
+kernel-owned transaction. `db.transaction` is unavailable in Steps.
+
+## Auth and RLS
+
+Worldant does not define users, JWT formats, claims, tenants, roles, or token validation.
+
+Custom request headers are preserved and projected into request-bound PostgreSQL transactions as:
+
+```sql
+current_setting('request.headers', true)::jsonb
+```
+
+Application authorization is normal PostgreSQL row-level security in migrations:
+
+```sql
+ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notes FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY notes_owner ON notes
+TO worldant_runtime
+USING (
+  owner_id = current_setting('request.headers', true)::jsonb->>'authorization'
+)
+WITH CHECK (
+  owner_id = current_setting('request.headers', true)::jsonb->>'authorization'
+);
+```
+
+Do not trust raw client headers in production unless a trusted gateway, middleware, or SQL function
+has validated them. Root `worldant.policy.sql` can define `worldant_owner(headers jsonb)` and alter
+fixed kernel policies; application-table RLS belongs in app migrations.
+
+## Common Mistakes
+
+- Do not create `queries/`, `mutations/`, `reactive/`, or `goals.ts`.
+- Do not call Steps directly from clients.
+- Do not assume a Command has one implicit handler-wide transaction.
+- Do not put nondeterministic IO in a Workflow body.
+- Do not treat middleware context as SQL identity; SQL sees original request headers.
+- Do not hard-code deployment URLs into generated packages or declarations.
+

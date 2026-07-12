@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "files": [
+    { "path": "README.md" },
+    { "path": "worldant.ts" },
+    { "path": "tsconfig.json" },
+    { "path": ".gitignore" },
+    { "path": "migrations/README.md" },
+    { "path": "commands/README.md" },
+    { "path": "workflows/README.md" },
+    { "path": "workflows/steps/README.md" },
+    { "path": "lib/README.md" },
+    { "path": "tests/README.md" }
+  ]
+}
+

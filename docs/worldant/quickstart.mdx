@@ -1,0 +1,54 @@
+---
+title: Quickstart
+description: Create, build, serve, and call a minimal Worldant world.
+---
+
+Create a world:
+
+```bash
+worldant init todo
+cd todo
+```
+
+`init` downloads the latest public template and creates a single-app world:
+
+```text
+todo/
+  worldant.ts
+  migrations/
+  commands/
+  workflows/
+    steps/
+  lib/
+  tests/
+```
+
+Add a Command under `commands/`:
+
+```ts
+import { db, sql } from "worldant"
+
+export default async function add(input) {
+  await db.exec(sql`insert into todos (id, title, done) values (${input.id}, ${input.title}, false)`)
+  return db.one(sql`select * from todos where id = ${input.id}`)
+}
+```
+
+Build and serve:
+
+```bash
+worldant build
+worldant serve
+```
+
+Call it:
+
+```ts
+import { createWorld } from "worldant-client"
+
+const world = createWorld({ url: "ws://127.0.0.1:8787/__worldant/v1/ws" })
+const todo = await world.todo.add({ id: "t1", title: "Buy milk" }, { key: "todo:t1:add" })
+```
+
+Use Workflows for work that must survive retries, waits, process failure, or restart.
+

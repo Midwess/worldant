@@ -1,0 +1,83 @@
+# Worldant Full AI Context
+
+This file expands the canonical AI entrypoint in `worldant.llms.txt`.
+
+## Concepts
+
+Worldant worlds are ordinary directories. The single-app layout uses root `commands/`,
+`workflows/`, `workflows/steps/`, `migrations/`, `lib/`, and `tests/`. Existing multi-app worlds can
+use `apps/<app>/...`.
+
+The world directory name is the app namespace for single-app worlds. In multi-app worlds, the app
+directory name is the app namespace.
+
+Identity comes from paths:
+
+```text
+commands/add.ts                         -> Command <world>.add
+workflows/sendReminder.ts               -> Workflow <world>.sendReminder
+workflows/steps/loadRecipients.ts       -> Step <world>.loadRecipients (internal)
+apps/todo/commands/add.ts               -> Command todo.add
+```
+
+## Runtime Boundaries
+
+Commands are immediate and non-durable. Each standalone database operation owns its own
+transaction. Explicit Command transactions use `db.transaction(callback)` and only `tx.*` calls
+enlist.
+
+Workflows are durable deterministic orchestration. They replay from the top against a PostgreSQL
+journal. Durable calls are correlated by position and replay returns recorded values.
+
+Steps are internal Workflow IO checkpoints. A Step gets one kernel-owned transaction for database
+effects, transaction-bound Workflow scheduling, Step output, and durable completion.
+
+## Configuration
+
+An optional `worldant.ts` exports static settings and middleware:
+
+```ts
+import type { NodeConfig } from "worldant"
+
+export default {
+  listen: "127.0.0.1:8787",
+  dataDir: ".worldant/data",
+  middleware: [],
+} satisfies NodeConfig
+```
+
+Middleware runs on served ingress before unary decoding and once when a subscription is
+established. It may replace payload and opaque context, reject, or return a unary response.
+Streaming middleware cannot return a unary response. Subject, operation, origin, and original
+headers are immutable.
+
+## Database and Auth
+
+PostgreSQL is the source of truth and the authorization boundary. Request-bound SQL runs through
+the fixed `worldant_runtime` role and can read custom headers through transaction-local
+`request.headers`.
+
+Worldant does not generate or validate JWTs. If a project wants JWT auth, the project validates the
+token before trusting it. RLS can read a trusted header or call SQL functions that interpret the
+token in `request.headers`.
+
+## AI Integration Checklist
+
+When integrating a running world:
+
+1. Fetch `/__worldant/v1/llms.txt`.
+2. Fetch `/__worldant/v1/knowledge/<app>.d.ts` for exact callable types.
+3. Use `createWorld()` from `worldant-client`.
+4. Call Commands through `world.<app>.<command>()`.
+5. Run Workflows with two awaits.
+6. Respect app RLS and pass the required headers.
+
+When authoring a world:
+
+1. Use Commands for immediate reads and writes.
+2. Use explicit Command transactions when multiple operations must be atomic.
+3. Use Workflows for durable orchestration and waits.
+4. Put IO checkpoints in internal Steps.
+5. Put application RLS in migrations.
+6. Put kernel event/run ownership policy in `worldant.policy.sql` only when needed.
+

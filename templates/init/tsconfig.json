@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "worldant.ts",
+    "commands/**/*.ts",
+    "workflows/**/*.ts",
+    "lib/**/*.ts",
+    "tests/**/*.ts",
+    "apps/**/*.ts",
+    "generated/**/*.ts"
+  ]
+}
+

@@ -1,0 +1,48 @@
+---
+title: Worldant
+description: Filesystem-authored Commands, durable Workflows, and PostgreSQL-backed runtime state.
+---
+
+Worldant runs software worlds authored as files. A successful build freezes source into an
+immutable `.dist` snapshot, and the host runs snapshots instead of the working tree.
+
+Worldant has two public callable concepts:
+
+- **Command**: immediate, non-durable application function.
+- **Workflow**: durable deterministic orchestration.
+
+Workflow **Steps** are internal IO checkpoints. They are not public callables.
+
+Removed concepts are not part of the current model: Query, Mutation, Reactive/Rule, Goal, and
+generic Action.
+
+## World Shape
+
+Single-app worlds use the root directory as the app namespace:
+
+```text
+my-world/
+  worldant.ts
+  migrations/
+  commands/
+  workflows/
+    steps/
+  lib/
+  tests/
+  generated/
+```
+
+Existing multi-app worlds may use:
+
+```text
+apps/<app>/commands/
+apps/<app>/workflows/
+apps/<app>/workflows/steps/
+apps/<app>/migrations/
+```
+
+## Core Rule
+
+PostgreSQL is the durable truth and the authorization boundary. Commands and Steps perform
+supported IO. Workflows orchestrate deterministic durable progress.
+

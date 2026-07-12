@@ -1,44 +1,16 @@
-# Worldant
+# Worldant AI Entrypoint
 
-> Worldant is a filesystem-authored runtime for immediate application functions and durable
-> processes, backed by a single embedded PostgreSQL engine that is both truth and realtime source.
-> This repository is the public product, packaging, release, and support surface. The runtime
-> implementation is proprietary and lives in a separate private repository.
+Read [`ai/worldant.llms.txt`](ai/worldant.llms.txt) first. It is the canonical AI documentation for
+Worldant.
 
-Worldant has exactly two public callable concepts. Do not present any other artifact kind as current.
+Use [`ai/llms-full.txt`](ai/llms-full.txt) when a larger context window is available.
 
-- Command — an immediate, non-durable application function. A default-exported `(input) => result`
-  under `apps/<app>/commands/`. It may read and write PostgreSQL and schedule Workflows. Each
-  standalone `db.one/many/exec` is its own transaction; `db.transaction(cb)` opens one explicit
-  transaction scoped to the `tx` handle.
-- Workflow — a durable, deterministic orchestration. A default-exported async function under
-  `apps/<app>/workflows/`. It replays from a PostgreSQL journal, calls Steps and child Workflows,
-  and uses durable wait primitives. It has no direct database, network, filesystem, clock, or
-  randomness access.
-- Step — an INTERNAL Workflow IO checkpoint under `apps/<app>/workflows/steps/`. A Step is never a
-  public callable kind and is never addressable through the public protocol. Step database effects
-  join one kernel-owned transaction and commit atomically with durable completion.
+Core invariants:
 
-Removed concepts: Query, Mutation, Reactive/Rule, Goal, and generic Action are NOT current artifact
-or protocol concepts. Collection synchronization and event streams are kernel/protocol facilities,
-not authored artifacts.
+- Commands and Workflows are the public callable concepts.
+- Steps are internal Workflow checkpoints and are never public callables.
+- Query, Mutation, Reactive/Rule, Goal, and generic Action are not current concepts.
+- Authentication is bring-your-own. Worldant exposes custom request headers to PostgreSQL as
+  transaction-local `request.headers`.
+- App authorization is normal PostgreSQL row-level security in migrations.
 
-The public wire protocol publishes two entry types: `Call -> Command` and `Run -> Workflow`.
-
-## Install and verify
-- [Installation](https://github.com/Midwess/worldant/blob/main/INSTALL.md): npm-based thin installer that verifies a signed release manifest before running any binary.
-- [Security policy](https://github.com/Midwess/worldant/blob/main/SECURITY.md): signature, checksum, SBOM, and provenance model; how to report vulnerabilities.
-- [Changelog](https://github.com/Midwess/worldant/blob/main/CHANGELOG.md): the public distribution model begins at 1.0.0.
-
-## Docs
-- [Quickstart](https://worldant.dev/docs/quickstart): install, init a world, author a Command, build, serve.
-- [Commands](https://worldant.dev/docs/commands): immediate functions and explicit transactions.
-- [Workflows](https://worldant.dev/docs/workflows): durable deterministic orchestration and replay.
-- [Steps](https://worldant.dev/docs/steps): internal Workflow IO checkpoints; never publicly callable.
-- [Transactions](https://worldant.dev/docs/transactions): standalone commits vs `db.transaction` vs kernel-owned Step transactions.
-- [Configuration](https://worldant.dev/docs/configuration): optional `worldant.ts` bootstrap and ordered middleware.
-- [Deployment](https://worldant.dev/docs/deployment): snapshots, serving, and compatibility.
-- [Troubleshooting](https://worldant.dev/docs/troubleshooting): install verification and common failures.
-
-## Optional
-- [Compatibility](https://worldant.dev/docs/compatibility): supported targets and version policy.

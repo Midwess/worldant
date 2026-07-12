@@ -1,0 +1,44 @@
+---
+title: Configuration
+description: Snapshot-pinned settings, middleware, request headers, and kernel policy SQL.
+---
+
+An optional root `worldant.ts` exports static node settings and middleware:
+
+```ts
+import type { NodeConfig } from "worldant"
+
+export default {
+  listen: "127.0.0.1:8787",
+  dataDir: ".worldant/data",
+  poolMaxConnections: 2,
+  maxWorkflowWorkers: 2,
+  middleware: [
+    async function auth(request, context, next) {
+      if (!request.headers.authorization) throw new Error("unauthorized")
+      return next(request.payload, context)
+    },
+  ],
+} satisfies NodeConfig
+```
+
+The CLI keeps runtime settings out of flags. Runtime settings belong in `worldant.ts`.
+
+Middleware runs before unary decoding and once when a subscription is established. It may reject,
+replace payload, replace opaque context, or return a unary response. Streaming middleware cannot
+return a unary response.
+
+Subject, operation, origin, and original headers are immutable. SQL RLS sees original request
+headers through `request.headers`.
+
+An optional root `worldant.policy.sql` is pinned into the snapshot and applied during activation.
+It may define:
+
+```sql
+CREATE OR REPLACE FUNCTION worldant_owner(headers jsonb) RETURNS text
+LANGUAGE sql STABLE SECURITY INVOKER
+AS $$ SELECT headers->>'authorization' $$;
+```
+
+It may also alter fixed kernel runtime policies. Application-table RLS remains in migrations.
+

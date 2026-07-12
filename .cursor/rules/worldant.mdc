@@ -1,0 +1,9 @@
+---
+description: Worldant repository guidance
+alwaysApply: true
+---
+
+Read `ai/worldant.llms.txt` first. Treat it as the canonical AI entrypoint for Worldant.
+
+Do not introduce Query, Mutation, Reactive/Rule, Goal, generic Action, or public Step APIs.
+

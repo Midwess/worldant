@@ -42,16 +42,16 @@ sync and event streams are protocol facilities, not authored artifacts.
 
 ## Documentation
 
-Long-form, versioned documentation lives at **https://worldant.dev/docs** (published from the
-company website). This repository holds concise operational docs, policies, the changelog, and
-[`llms.txt`](llms.txt) for machine discovery.
+Canonical Worldant documentation lives in this repository under [`docs/worldant`](docs/worldant).
+The company website renders those files for humans, and [`llms.txt`](llms.txt) points AI tools to
+the same source.
 
 ## Repositories
 
 | Repository | Role |
 |------------|------|
-| `Midwess/worldant` (this) | Public product, packaging, releases, support, LLM entry points |
-| `Midwess/web` | Company website and long-form multi-product documentation |
+| `Midwess/worldant` (this) | Public product, packaging, releases, support, docs, templates, LLM entry points |
+| `Midwess/web` | Company website renderer for multi-product documentation |
 
 The Worldant runtime is built and signed in a separate private repository (the artifact authority).
 This repository consumes only its signed, immutable release artifacts.

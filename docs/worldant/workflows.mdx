@@ -1,0 +1,25 @@
+---
+title: Workflows
+description: Durable deterministic orchestration and internal Step checkpoints.
+---
+
+A Workflow is a default-exported async TypeScript function under `workflows/` or
+`apps/<app>/workflows/`.
+
+Workflow bodies are deterministic orchestration. They may call Steps, call child Workflows, branch
+on recorded values, and use durable wait primitives. They may not directly access databases,
+network, filesystem, ambient timers, randomness, or other nondeterministic capabilities.
+
+Steps live under `workflows/steps/` or `apps/<app>/workflows/steps/`. They are internal Workflow IO
+checkpoints and are never public callables.
+
+Step database effects, transaction-bound Workflow scheduling, Step output, and durable completion
+commit atomically in one kernel-owned transaction. `db.transaction` is unavailable in Steps.
+
+Client usage uses two awaits:
+
+```ts
+const run = await world.todo.remind(input)
+const output = await run.handle
+```
+

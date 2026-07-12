@@ -1,0 +1,25 @@
+---
+title: How it works
+description: Build snapshots, hosted capabilities, and durable Workflow replay.
+---
+
+Worldant builds a world by discovering filesystem artifacts, validating imports and migrations,
+transpiling TypeScript, reflecting schema, and publishing an immutable run snapshot.
+
+The host serves compatible snapshots. New calls use the current compatible snapshot. In-flight
+Workflow runs stay pinned to the snapshot they started with.
+
+Commands execute immediately. Workflows replay from a PostgreSQL journal. Steps perform supported
+IO at durable boundaries.
+
+Hosted capabilities are intentionally explicit:
+
+- PostgreSQL reads and writes.
+- Explicit Command transactions.
+- Workflow scheduling and replay.
+- Step database effects with durable completion.
+- Event and collection transport facilities.
+
+External network clients, author-accessible timers outside durable Workflow primitives, filesystem
+access, and arbitrary Node or Deno runtime APIs are not general hosted capabilities.
+

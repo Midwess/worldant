@@ -1,0 +1,33 @@
+---
+title: Commands
+description: Immediate Worldant functions for reads, writes, and computation.
+---
+
+A Command is a default-exported TypeScript function under `commands/` or
+`apps/<app>/commands/`.
+
+```ts
+import { db, sql } from "worldant"
+
+export default async function open(input) {
+  return db.many(sql`select * from todos where done = false order by id`)
+}
+```
+
+Commands do not receive a context argument. They import supported capabilities from `worldant`.
+
+Standalone `db.one`, `db.many`, and `db.exec` operations each use an independent database
+transaction. If the Command later throws, earlier standalone commits remain committed.
+
+Use `db.transaction(callback)` when several Command database operations must commit atomically:
+
+```ts
+await db.transaction(async (tx) => {
+  await tx.exec(sql`insert into audit (id) values (${input.id})`)
+  return tx.one(sql`select * from todos where id = ${input.id}`)
+})
+```
+
+Only `tx.*` calls enlist in the explicit transaction. Plain `db.*` calls inside the callback remain
+independent.
+

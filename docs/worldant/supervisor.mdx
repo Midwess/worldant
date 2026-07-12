@@ -1,0 +1,14 @@
+---
+title: Serve and operations
+description: Running a built world and supervising durable work.
+---
+
+`worldant serve` builds the current world, publishes a snapshot, starts the data plane, serves the
+wire endpoint, and runs Workflow workers when the snapshot contains Workflows.
+
+Configuration belongs in `worldant.ts`, including listen address, data directory, external DSN,
+pool limits, scheduler limits, and worker counts.
+
+The host uses evictable JavaScript runtime slots keyed by snapshot and entrypoint. Eviction never
+loses durable truth because Workflow progress and application data live in PostgreSQL.
+

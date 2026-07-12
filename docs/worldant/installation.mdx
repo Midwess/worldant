@@ -1,0 +1,24 @@
+---
+title: Installation
+description: Install and verify the Worldant command-line tool.
+---
+
+Install the public package:
+
+```bash
+npm install --global @midwess/worldant
+worldant --version
+```
+
+The package installs a verified release binary. It checks the release manifest signature and
+artifact digest before running the binary.
+
+Use:
+
+```bash
+worldant init my-world
+cd my-world
+worldant build
+worldant serve
+```
+
