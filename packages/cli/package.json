@@ -1,0 +1,33 @@
+{
+  "name": "worldant",
+  "version": "1.0.0",
+  "description": "Worldant CLI — thin verified installer for the Worldant runtime. Downloads, cryptographically verifies, and runs official signed release binaries.",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/Midwess/worldant",
+  "repository": { "type": "git", "url": "git+https://github.com/Midwess/worldant.git", "directory": "packages/cli" },
+  "bugs": { "url": "https://github.com/Midwess/worldant/issues" },
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "bin": {
+    "worldant": "bin/worldant.js",
+    "worldant-uninstall": "uninstall.js"
+  },
+  "files": [
+    "bin/",
+    "install.js",
+    "uninstall.js",
+    "installer-core.mjs",
+    "download.mjs",
+    "verify-manifest.mjs",
+    "trust-policy.json",
+    "README.md"
+  ],
+  "scripts": {
+    "postinstall": "node install.js",
+    "test": "node --test ../../test/*.test.mjs"
+  },
+  "dependencies": {
+    "sigstore": "^3.0.0",
+    "tar": "^7.4.3"
+  }
+}

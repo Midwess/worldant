@@ -1,0 +1,36 @@
+name: Bug report
+description: Report a problem installing, verifying, or running a released Worldant CLI.
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Worldant version
+      description: Output of `worldant --version`.
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - macOS arm64
+        - macOS x64
+        - Linux arm64
+        - Linux x64
+        - Other/unsupported
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Installer / error output
+      description: Paste relevant output. Redact any secrets.
+      render: shell

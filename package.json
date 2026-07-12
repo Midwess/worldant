@@ -1,0 +1,16 @@
+{
+  "name": "worldant-public",
+  "private": true,
+  "type": "module",
+  "description": "Public product, packaging, release, and support surface for Worldant.",
+  "license": "Apache-2.0",
+  "workspaces": ["packages/cli"],
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "validate:schema": "node scripts/validate-schema.mjs",
+    "scan:disclosure": "node scripts/scan-disclosure.mjs",
+    "check:links": "node scripts/check-links.mjs",
+    "smoke": "node scripts/smoke-install.mjs",
+    "ci": "npm test && npm run validate:schema && npm run scan:disclosure && npm run check:links && npm run smoke"
+  }
+}

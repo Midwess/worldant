@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://worldant.dev/schema/release-manifest.v1.json",
+  "title": "Worldant Release Manifest v1",
+  "description": "Canonical signed description of one official Worldant release. Published only after every referenced immutable artifact exists. The manifest signature is verified before any artifact URL is trusted.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "version", "sourceRevision", "documentation", "artifacts", "evidence", "signatures"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "version": {
+      "type": "string",
+      "description": "Exact release version. Must equal the installer package version, git tag, npm version, and changelog entry.",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "sourceRevision": {
+      "type": "string",
+      "description": "Opaque attested revision identifier. MUST NOT be the private repository name, URL, or a raw private commit SHA.",
+      "minLength": 8,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    },
+    "documentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bundleSha256"],
+      "properties": {
+        "bundleSha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "description": "One entry per supported target, keyed by '<os>-<arch>'.",
+      "minProperties": 1,
+      "propertyNames": { "pattern": "^(darwin|linux)-(arm64|x64)$" },
+      "additionalProperties": { "$ref": "#/$defs/artifact" }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checksums", "sbom", "provenance"],
+      "properties": {
+        "checksums": { "$ref": "#/$defs/evidenceObject" },
+        "sbom": { "$ref": "#/$defs/evidenceObject" },
+        "provenance": { "$ref": "#/$defs/evidenceObject" }
+      }
+    },
+    "signatures": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest"],
+      "properties": {
+        "manifest": { "$ref": "#/$defs/manifestSignatureObject" },
+        "provenance": { "$ref": "#/$defs/signatureObject" }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Lowercase hex SHA-256 digest."
+    },
+    "immutableUrl": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://",
+      "description": "HTTPS, version-addressed, immutable origin. No 'latest' or mutable paths."
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "sha256"],
+      "properties": {
+        "url": { "$ref": "#/$defs/immutableUrl" },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "evidenceObject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "sha256", "mediaType"],
+      "properties": {
+        "url": { "$ref": "#/$defs/immutableUrl" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "mediaType": { "type": "string" }
+      }
+    },
+    "signatureObject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "sha256", "mediaType", "subject"],
+      "properties": {
+        "url": { "$ref": "#/$defs/immutableUrl" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "mediaType": { "type": "string" },
+        "subject": { "type": "string" }
+      }
+    },
+    "manifestSignatureObject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "mediaType", "subject"],
+      "description": "The manifest's own signature bundle. It carries NO sha256: the manifest cannot contain the digest of a signature computed over the manifest itself (circular).",
+      "properties": {
+        "url": { "$ref": "#/$defs/immutableUrl" },
+        "mediaType": { "type": "string" },
+        "subject": { "type": "string" }
+      }
+    }
+  }
+}

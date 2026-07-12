@@ -1,0 +1,73 @@
+name: Release
+
+# Runs only after a reviewed version PR merges (a v* tag is pushed) or via a protected manual
+# dispatch. Idempotent: draft GitHub Release -> npm publish (OIDC) -> finalize the existing release.
+# Public PRs can never reach this workflow; no private source or long-lived npm token is used.
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact version to (re)publish, e.g. 1.0.0
+        required: true
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Verify and smoke-test on ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    env:
+      RELEASE_VERSION: ${{ github.event.inputs.version || github.ref_name }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - runner: ubuntu-latest
+          - runner: ubuntu-24.04-arm
+          - runner: macos-14
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Verify signed manifest and artifact digests for this version
+        run: node scripts/verify-release-request.mjs
+      - name: Installation smoke test on this runner
+        run: node scripts/smoke-install.mjs
+
+  finalize:
+    name: Draft, npm publish, finalize (idempotent)
+    needs: publish
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: ${{ github.event.inputs.version || github.ref_name }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Create or reuse a draft GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publish-release.mjs --stage draft
+      - name: Publish npm via OIDC trusted publishing
+        run: node scripts/publish-release.mjs --stage npm
+      - name: Attach evidence and finalize the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publish-release.mjs --stage finalize

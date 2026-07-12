@@ -1,0 +1,19 @@
+{
+  "policyVersion": 1,
+  "comment": "Pinned Sigstore verification policy shipped WITH this installer version. Changing it requires a new installer release.",
+  "sigstore": {
+    "certificateIssuer": "https://token.actions.githubusercontent.com",
+    "certificateIdentity": "https://github.com/Midwess/worldant/.github/workflows/sign.yml@refs/heads/main",
+    "_signer_note": "Manifests are signed keyless by the dedicated, protected sign.yml in the PUBLIC product repo, so the bundle SAN reveals no private repo. The signature covers the manifest bytes (which carry the version); the installer's manifest.version == package.version check prevents cross-version replay. sign.yml re-verifies every artifact digest against the immutable store before signing."
+  },
+  "immutableOrigins": {
+    "allowlist": [
+      "objects.githubusercontent.com",
+      "release-assets.githubusercontent.com",
+      "github.com"
+    ],
+    "maxRedirects": 3,
+    "httpsOnly": true,
+    "_note": "GitHub Release assets are the initial (deferred-object-lock) store. When an object-lock bucket is provisioned, replace this allowlist with the bucket host and enable write-once verification in release CI."
+  }
+}

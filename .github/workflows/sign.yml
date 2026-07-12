@@ -1,0 +1,44 @@
+name: Sign release manifest
+
+# The dedicated public signing identity. Triggered ONLY by the private artifact authority via an
+# authenticated GitHub App dispatch. Keyless Sigstore signing here yields a SAN of THIS public repo,
+# so the public bundle reveals no private repo. Runs no build and holds no private-source credential.
+# Pinned by the installer trust policy as:
+#   https://github.com/Midwess/worldant/.github/workflows/sign.yml@refs/heads/main
+
+on:
+  repository_dispatch:
+    types: [sign-manifest]
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: sign-${{ github.event.client_payload.version }}
+  cancel-in-progress: false
+
+jobs:
+  sign:
+    name: Verify digests and keyless-sign the manifest
+    runs-on: ubuntu-latest
+    environment: signing
+    # Only the release-bot App may request signing; the manifest URL is derived from the version by
+    # sign-manifest.mjs, never taken from the payload.
+    if: github.event.sender.login == 'worldant-release-bot[bot]'
+    env:
+      RELEASE_VERSION: ${{ github.event.client_payload.version }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3.7.0
+      - name: Verify artifact digests and keyless-sign the manifest
+        run: node scripts/sign-manifest.mjs
+      - name: Attach the signed bundle to the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "v$RELEASE_VERSION" release-manifest.json.sigstore --clobber
