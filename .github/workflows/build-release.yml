@@ -6,7 +6,7 @@ on:
       version:
         description: Exact version
         required: true
-        default: 1.0.0
+        default: 1.0.1
       source_ref:
         description: Private source branch, tag, or SHA
         required: true
@@ -95,15 +95,13 @@ jobs:
           pattern: worldant-*
           merge-multiple: true
           path: release-assets
-      - uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da
       - name: Assemble release evidence and manifest
         env:
           VERSION: ${{ inputs.version }}
           SOURCE_REF: ${{ inputs.source_ref }}
         run: node scripts/assemble-release.mjs
-      - name: Sign manifest and provenance
-        run: |
-          cosign sign-blob --yes --bundle release-assets/release-manifest.json.sigstore release-assets/release-manifest.json
+      - name: Sign manifest with sigstore-js
+        run: node scripts/sign-release.mjs
       - name: Create draft release and upload every asset
         env:
           GH_TOKEN: ${{ github.token }}
