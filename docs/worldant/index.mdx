@@ -18,7 +18,8 @@ generic Action.
 
 ## World Shape
 
-Single-app worlds use the root directory as the app namespace:
+Single-app worlds use `worldant.ts` `name` as the app namespace. If omitted, Worldant derives a
+valid identifier from the root directory name:
 
 ```text
 todo/

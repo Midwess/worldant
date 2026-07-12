@@ -9,6 +9,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.3] — 2026-07-12
+
+### Added
+- Configurable single-app namespaces through `name` in `worldant.ts`.
+- Automatic valid namespace generation from world directory names during initialization.
+
 ### Added
 - Thin verifying npm installer (`@midwess/worldant`) with a pinned Sigstore trust policy.
 - Release-manifest schema v1 (`schema/release-manifest.v1.json`).
@@ -22,5 +28,6 @@ prior private release scheme; those historical tags and releases remain with the
 and are **not** republished here. `1.0.0` marks the start of the signed, immutable public
 distribution — it is not a continuation of the private `0.x` source-release line.
 
-[Unreleased]: https://github.com/Midwess/worldant/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Midwess/worldant/compare/v1.0.3...HEAD
+[1.0.3]: https://github.com/Midwess/worldant/compare/v1.0.2...v1.0.3
 [1.0.0]: https://github.com/Midwess/worldant/releases/tag/v1.0.0

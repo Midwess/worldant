@@ -9,6 +9,7 @@ An optional root `worldant.ts` exports static node settings and middleware:
 import type { NodeConfig } from "worldant"
 
 export default {
+  name: "todo",
   listen: "127.0.0.1:8787",
   dataDir: ".worldant/data",
   poolMaxConnections: 2,
@@ -23,6 +24,8 @@ export default {
 ```
 
 The CLI keeps runtime settings out of flags. Runtime settings belong in `worldant.ts`.
+`name` sets the single-app namespace. If omitted, Worldant converts the world directory name to a
+valid identifier, for example `toy-store` becomes `toy_store`.
 
 Middleware runs before unary decoding and once when a subscription is established. It may reject,
 replace payload, replace opaque context, or return a unary response. Streaming middleware cannot
