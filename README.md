@@ -11,7 +11,7 @@ only signed, immutable release artifacts — it never builds the runtime from pr
 ## Install
 
 ```bash
-npm install --global worldant
+npm install --global @midwess/worldant
 worldant --version
 ```
 

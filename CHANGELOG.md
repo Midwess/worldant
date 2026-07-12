@@ -10,7 +10,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-- Thin verifying npm installer (`worldant`) with a pinned Sigstore trust policy.
+- Thin verifying npm installer (`@midwess/worldant`) with a pinned Sigstore trust policy.
 - Release-manifest schema v1 (`schema/release-manifest.v1.json`).
 - Public installation, security, and contribution documentation.
 - `llms.txt` machine-discovery entry point.

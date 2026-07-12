@@ -1,5 +1,5 @@
 {
-  "name": "worldant",
+  "name": "@midwess/worldant",
   "version": "1.0.0",
   "description": "Worldant CLI — thin verified installer for the Worldant runtime. Downloads, cryptographically verifies, and runs official signed release binaries.",
   "license": "Apache-2.0",

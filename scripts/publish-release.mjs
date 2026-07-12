@@ -8,6 +8,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..")
 const cliDir = join(root, "packages", "cli")
 const version = (process.env.RELEASE_VERSION || "").replace(/^v/, "")
 const tag = `v${version}`
+const packageName = "@midwess/worldant"
 const stageArg = process.argv.indexOf("--stage")
 const stage = stageArg >= 0 ? process.argv[stageArg + 1] : ""
 
@@ -36,18 +37,18 @@ function ensureDraft() {
 }
 
 function publishNpm() {
-  const published = tryOut("npm", ["view", `worldant@${version}`, "version"])
+  const published = tryOut("npm", ["view", `${packageName}@${version}`, "version"])
   if (published === version) {
-    console.log(`publish-release: npm worldant@${version} already published; skipping.`)
+    console.log(`publish-release: npm ${packageName}@${version} already published; skipping.`)
     return
   }
   // Trusted publishing (OIDC) — no long-lived token; provenance from the workflow identity.
   sh("npm", ["publish", "--access", "public", "--provenance"], { cwd: cliDir, stdio: "inherit" })
-  console.log(`publish-release: published npm worldant@${version}.`)
+  console.log(`publish-release: published npm ${packageName}@${version}.`)
 }
 
 function finalize() {
-  const npmOk = tryOut("npm", ["view", `worldant@${version}`, "version"]) === version
+  const npmOk = tryOut("npm", ["view", `${packageName}@${version}`, "version"]) === version
   if (!npmOk) {
     console.error("publish-release: refusing to finalize — npm publish not confirmed. Draft stays non-public.")
     process.exit(1)
