@@ -12,11 +12,11 @@ worldant --version
 ## 2. Initialize (or use this folder)
 
 ```bash
-worldant init my-world --app todo
-cd my-world
+worldant init todo
+cd todo
 ```
 
-This folder mirrors what `init` produces: one app `todo` with a migration and one Command.
+This folder shows the same Command and migration shape that an initialized world can use.
 
 ## 3. Build and serve
 

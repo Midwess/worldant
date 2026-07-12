@@ -21,7 +21,7 @@ generic Action.
 Single-app worlds use the root directory as the app namespace:
 
 ```text
-my-world/
+todo/
   worldant.ts
   migrations/
   commands/
@@ -45,4 +45,3 @@ apps/<app>/migrations/
 
 PostgreSQL is the durable truth and the authorization boundary. Commands and Steps perform
 supported IO. Workflows orchestrate deterministic durable progress.
-

@@ -29,13 +29,14 @@ path-traversal archives, and redirects to disallowed origins. See [INSTALL.md](I
 
 ## What Worldant runs
 
-Two public callable concepts, identified by filesystem path:
+Two public callable concepts, identified by filesystem path. `worldant init` creates the single-app
+root layout; existing multi-app worlds may use the `apps/<app>/...` layout.
 
 | Path | Kind | Meaning |
 |------|------|---------|
-| `apps/<app>/commands/*.ts` | **Command** | Immediate, non-durable function. Reads/writes PostgreSQL; may schedule Workflows. |
-| `apps/<app>/workflows/*.ts` | **Workflow** | Durable, deterministic orchestration replayed from a PostgreSQL journal. |
-| `apps/<app>/workflows/steps/*.ts` | *Step* | **Internal** Workflow IO checkpoint — never publicly callable. |
+| `commands/*.ts` or `apps/<app>/commands/*.ts` | **Command** | Immediate, non-durable function. Reads/writes PostgreSQL; may schedule Workflows. |
+| `workflows/*.ts` or `apps/<app>/workflows/*.ts` | **Workflow** | Durable, deterministic orchestration replayed from a PostgreSQL journal. |
+| `workflows/steps/*.ts` or `apps/<app>/workflows/steps/*.ts` | *Step* | **Internal** Workflow IO checkpoint — never publicly callable. |
 
 Query, Mutation, Reactive/Rule, Goal, and generic Action are **not** current concepts. Collection
 sync and event streams are protocol facilities, not authored artifacts.
