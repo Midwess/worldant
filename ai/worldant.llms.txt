@@ -114,3 +114,8 @@ and `ownerHeader`; application-table RLS belongs in app migrations.
 - Do not put nondeterministic IO in a Workflow body.
 - Do not treat middleware context as SQL identity; SQL sees original request headers.
 - Do not hard-code deployment URLs into generated packages or declarations.
+- Do not compare uuid columns to uncast parameters; write `${input.id}::uuid`.
+- Do not use `= any(${arr})` on a JS array; it binds as jsonb — unnest with
+  `jsonb_array_elements_text(${arr})`.
+- Do not expect `db.one` to resolve `null` on zero rows; it rejects. Use `db.many` when absence is
+  a normal outcome.

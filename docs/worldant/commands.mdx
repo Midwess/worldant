@@ -30,3 +30,7 @@ await db.transaction(async (tx) => {
 
 Only `tx.*` calls enlist in the explicit transaction. Plain `db.*` calls inside the callback remain
 independent.
+
+Parameters bind as JSON: cast uuid parameters explicitly (`${input.id}::uuid`), unnest JS arrays
+with `jsonb_array_elements_text`, and expect `db.one` to reject on zero rows. The database page
+covers these gotchas with examples.

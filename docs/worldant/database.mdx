@@ -8,6 +8,30 @@ Worldant uses one PostgreSQL data plane as durable truth and realtime source.
 Applications define schema with ordered SQL migrations. Generated TypeScript schema files are
 derived output and should not be edited.
 
+## Parameter binding
+
+`sql` template values bind as JSON parameters, not typed Postgres values. Three consequences:
+
+**uuid columns need an explicit cast.** A bound parameter does not carry a Postgres type; compare
+or insert into `uuid` columns with a cast on the parameter:
+
+```ts
+await db.one(sql`select * from toys where id = ${input.id}::uuid`)
+```
+
+**A JS array binds as jsonb, not a Postgres array.** `= any(${arr})` fails. Unnest the jsonb value
+instead:
+
+```ts
+await db.many(sql`
+  select * from toys
+  where id in (select jsonb_array_elements_text(${input.ids})::uuid)
+`)
+```
+
+**`db.one` rejects on zero rows.** It resolves with the first row or throws; it never resolves
+`null`. When absence is a normal outcome, use `db.many` and check the length.
+
 ## Authorization
 
 Worldant does not define users, JWTs, claims, tenants, or token validation. Applications bring
