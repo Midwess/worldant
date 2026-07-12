@@ -113,6 +113,8 @@ jobs:
           gh release upload "v$VERSION" release-assets/* --clobber
       - name: Publish scoped npm installer
         working-directory: packages/cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_SECRET_KEY }}
         run: npm publish --access public --provenance
       - name: Verify npm publication
         env:
