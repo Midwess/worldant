@@ -9,6 +9,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.4] — 2026-07-12
+
+### Added
+- `worldant init` now creates AI guidance entrypoints for Codex/OpenAI agents, Claude, Gemini,
+  GitHub Copilot, Cursor, and `llms.txt`.
+- Generated AI entrypoints point back to the canonical public Worldant docs while repeating the
+  current Command/Workflow/Step, BYO auth, and PostgreSQL RLS rules locally.
+
 ## [1.0.3] — 2026-07-12
 
 ### Added
@@ -28,6 +36,7 @@ prior private release scheme; those historical tags and releases remain with the
 and are **not** republished here. `1.0.0` marks the start of the signed, immutable public
 distribution — it is not a continuation of the private `0.x` source-release line.
 
-[Unreleased]: https://github.com/Midwess/worldant/compare/v1.0.3...HEAD
+[Unreleased]: https://github.com/Midwess/worldant/compare/v1.0.4...HEAD
+[1.0.4]: https://github.com/Midwess/worldant/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/Midwess/worldant/compare/v1.0.2...v1.0.3
 [1.0.0]: https://github.com/Midwess/worldant/releases/tag/v1.0.0

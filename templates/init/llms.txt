@@ -1,0 +1,33 @@
+# Worldant Project
+
+This is a generated Worldant world.
+
+Read the canonical Worldant AI docs before changing generated structure or adding application code:
+
+- https://github.com/Midwess/worldant/blob/main/ai/worldant.llms.txt
+- https://github.com/Midwess/worldant/blob/main/ai/llms-full.txt
+
+Human docs:
+
+- https://github.com/Midwess/worldant/tree/main/docs/worldant
+
+Current Worldant model:
+
+- Command: immediate, non-durable application function under `commands/`.
+- Workflow: durable deterministic orchestration under `workflows/`.
+- Step: internal Workflow IO checkpoint under `workflows/steps/`, never public.
+
+Rules:
+
+- Do not create `queries/`, `mutations/`, `reactive/`, `goals.ts`, generic Actions, or public Step
+  APIs.
+- Commands import supported capabilities from `worldant`.
+- Standalone Command database calls commit independently. Use `db.transaction(async (tx) => ...)`
+  when multiple Command database effects must commit together.
+- Workflow bodies must stay deterministic. Put database and other supported IO in Steps.
+- Worldant does not define users, JWT formats, claims, tenants, roles, or token validation.
+- Application authorization is normal PostgreSQL row-level security in migrations.
+- Request-bound application SQL can read custom headers from
+  `current_setting('request.headers', true)::jsonb`.
+- Do not trust raw client headers in production unless a trusted gateway, middleware, or SQL
+  function has validated them.

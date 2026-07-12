@@ -9,4 +9,5 @@ worldant build
 worldant serve
 ```
 
-Read the canonical docs in the public Worldant repository: `docs/worldant/`.
+Read `llms.txt` before using an AI coding agent in this world. It points to the canonical docs in
+the public Worldant repository and repeats the current authoring rules.

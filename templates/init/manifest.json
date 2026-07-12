@@ -2,6 +2,12 @@
   "version": 1,
   "files": [
     { "path": "README.md" },
+    { "path": "AGENTS.md" },
+    { "path": "CLAUDE.md" },
+    { "path": "GEMINI.md" },
+    { "path": "llms.txt" },
+    { "path": ".github/copilot-instructions.md" },
+    { "path": ".cursor/rules/worldant.mdc" },
     { "path": "worldant.ts" },
     { "path": "tsconfig.json" },
     { "path": ".gitignore" },
@@ -13,4 +19,3 @@
     { "path": "tests/README.md" }
   ]
 }
-
