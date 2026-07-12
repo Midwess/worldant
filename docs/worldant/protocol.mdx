@@ -3,7 +3,7 @@ title: Protocol
 description: Worldant client calls, runs, subscriptions, catalog, and knowledge text.
 ---
 
-Worldant exposes a running world through one WebSocket endpoint:
+With `wire.webSocket: true`, Worldant exposes the TCP wire surface at:
 
 ```text
 GET /__worldant/v1/ws
@@ -16,12 +16,18 @@ The public profile exposes:
 - Subscription streams for events, synced collections, and run status.
 - Catalog and AI knowledge payloads.
 
-Plain text knowledge is also available:
+The same TCP surface provides plain text knowledge:
 
 ```text
 GET /__worldant/v1/llms.txt
 GET /__worldant/v1/knowledge/:app.d.ts
 ```
+
+With `wire.webTransport: true`, the Worldant wire profile is also available over WebTransport on
+the configured shared address and port. It carries calls, runs, subscriptions, catalog, and
+knowledge. When both transports are enabled they bind the same resolved port atomically. When
+WebSocket is disabled there is no TCP listener and the HTTP paths above are unavailable; knowledge
+remains available through the wire profile over WebTransport.
 
 Use the generic client:
 
@@ -32,4 +38,3 @@ const world = createWorld({ url: "ws://127.0.0.1:8787/__worldant/v1/ws" })
 ```
 
 Generated artifacts do not bake deployment addresses.
-

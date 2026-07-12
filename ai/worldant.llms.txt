@@ -12,6 +12,7 @@ working tree.
 - Workflows: `docs/worldant/workflows.mdx`
 - Database and auth: `docs/worldant/database.mdx`
 - Configuration and middleware: `docs/worldant/configuration.mdx`
+- Serve lifecycle: `docs/worldant/serve.mdx`
 
 ## Current Model
 

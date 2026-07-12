@@ -9,6 +9,15 @@ transpiling TypeScript, reflecting schema, and publishing an immutable run snaps
 The host serves compatible snapshots. New calls use the current compatible snapshot. In-flight
 Workflow runs stay pinned to the snapshot they started with.
 
+Serve first evaluates working-tree configuration for data and build settings, publishes a new
+snapshot, then loads serving settings and middleware from that snapshot. The snapshot configuration
+is evaluated once and remains authoritative for the process lifetime. Editing `worldant.ts` does
+not hot-reload a running node; stop and rerun serve to publish and apply a new snapshot.
+
+Every enabled inbound transport binds before Workflow workers or the sweeper start. A bind failure
+releases all acquired listeners, starts no background work, and never reports readiness. The newly
+published immutable snapshot remains available even when binding later fails.
+
 Commands execute immediately. Workflows replay from a PostgreSQL journal. Steps perform supported
 IO at durable boundaries.
 
@@ -22,4 +31,3 @@ Hosted capabilities are intentionally explicit:
 
 External network clients, author-accessible timers outside durable Workflow primitives, filesystem
 access, and arbitrary Node or Deno runtime APIs are not general hosted capabilities.
-

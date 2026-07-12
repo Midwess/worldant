@@ -27,13 +27,17 @@ declare module "worldant" {
 
   /**
    * Database access for Commands and Steps. Each standalone db operation owns an independent
-   * transaction. Type parameters are assertions only — results are not checked against your
-   * schema at build time.
+   * transaction in Commands; in Steps all db operations join one kernel-owned transaction.
+   * Type parameters are assertions only — results are not checked against your schema at
+   * build time.
    */
   export const db: Db;
 
-  /** Emit a kernel event. Available in Commands and Steps. */
-  export function emit(kind: string, payload?: unknown): void;
+  /**
+   * Emit a kernel event. Available in Commands and Steps. The runtime prefixes the app onto
+   * the kind: `emit("reminder")` in app `todo` stores kind `todo.reminder`.
+   */
+  export function emit(kind: string, payload?: unknown): Promise<void>;
 
   /** Durable deterministic pause. Workflows only. */
   export function sleep(ms: number): Promise<void>;
@@ -50,15 +54,29 @@ declare module "worldant" {
    * are immutable; middleware may replace payload and opaque context or return a unary response.
    */
   export type Middleware = (
-    request: { readonly headers: Record<string, string>; readonly payload: unknown },
+    request: {
+      readonly subject: string;
+      readonly operation: string;
+      readonly headers: Record<string, string>;
+      readonly metadata: unknown;
+      readonly payload: unknown;
+    },
     context: unknown,
-    next: (payload: unknown, context: unknown) => Promise<unknown>,
+    next: (payload?: unknown, context?: unknown) => Promise<unknown>,
   ) => unknown;
 
-  /** Static node settings for the optional root worldant.ts. */
+  export type WireConfig = {
+    nodeName: string;
+    bindAddress: string;
+    port: number;
+    webTransport: boolean;
+    webSocket: boolean;
+  };
+
+  /** Static node settings for the root worldant.ts. Wire settings are required by serve. */
   export type NodeConfig = {
     name?: string;
-    listen?: string;
+    wire?: WireConfig;
     dsn?: string;
     dataDir?: string;
     poolMaxConnections?: number;

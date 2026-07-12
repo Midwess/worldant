@@ -9,6 +9,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.7] — 2026-07-13
+
+### Added
+- `worldant serve` now requires explicit `wire` configuration for node identity, bind address,
+  shared port, and enabled transports.
+- Serve now binds enabled transports through one supervised host before reporting readiness, and
+  shutdown awaits listeners, workers, middleware runtime, and the data plane.
+- Public docs and init templates now describe separate world `name` and deployment `wire.nodeName`
+  identities.
+
 ## [1.0.6] — 2026-07-12
 
 ### Added
@@ -53,7 +63,8 @@ prior private release scheme; those historical tags and releases remain with the
 and are **not** republished here. `1.0.0` marks the start of the signed, immutable public
 distribution — it is not a continuation of the private `0.x` source-release line.
 
-[Unreleased]: https://github.com/Midwess/worldant/compare/v1.0.6...HEAD
+[Unreleased]: https://github.com/Midwess/worldant/compare/v1.0.7...HEAD
+[1.0.7]: https://github.com/Midwess/worldant/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/Midwess/worldant/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/Midwess/worldant/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/Midwess/worldant/compare/v1.0.3...v1.0.4

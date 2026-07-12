@@ -23,6 +23,10 @@ todo/
   tests/
 ```
 
+The generated `worldant.ts` has separate world and wire node identities plus explicit bind address,
+port, WebTransport, and WebSocket settings. The normalized defaults are equal, but they serve
+different purposes: `name` identifies callable addresses and `wire.nodeName` identifies this node.
+
 Add a migration under `migrations/0001_init.sql`:
 
 ```sql
@@ -54,6 +58,9 @@ Build and serve:
 worldant build
 worldant serve
 ```
+
+Serve requires the complete generated `wire` object. It publishes a snapshot, loads configuration
+from that snapshot, and binds every enabled transport before reporting readiness.
 
 Call it:
 

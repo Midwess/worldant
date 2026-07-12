@@ -67,26 +67,49 @@ export default async function loadItem(input: { id: number }) {
 import { emit } from "worldant"
 
 export default async function sendReminder(input: { id: number; title: string }) {
-  emit("todo.reminder", { id: input.id, title: input.title })
+  await emit("reminder", { id: input.id, title: input.title })
   return { reminded: true }
 }
 ```
+
+The runtime prefixes the app onto emitted kinds: `emit("reminder")` in app `todo` stores kind
+`todo.reminder`, which is what event waits and client filters match against.
 
 On replay a committed Step returns its stored output without repeating database effects.
 
 ## Configuration
 
-An optional `worldant.ts` exports static settings and middleware:
+The root `worldant.ts` exports static settings and middleware. Build and direct run may omit it,
+but serve requires complete wire settings:
 
 ```ts
 import type { NodeConfig } from "worldant"
 
 export default {
-  listen: "127.0.0.1:8787",
+  name: "todo",
+  wire: {
+    nodeName: "todo_local",
+    bindAddress: "127.0.0.1",
+    port: 8787,
+    webTransport: true,
+    webSocket: true,
+  },
   dataDir: ".worldant/data",
   middleware: [],
 } satisfies NodeConfig
 ```
+
+`name` is the stable world subject and callable namespace. `wire.nodeName` is an independent
+deployment topology identity. The bind address must be an IP literal, both transport booleans must
+be explicit, and at least one transport must be enabled. WebSocket controls the complete TCP
+surface, including `/__worldant/v1/ws`, `/__worldant/v1/llms.txt`, and HTTP knowledge routes.
+WebTransport carries the wire profile, including knowledge, without enabling those HTTP routes.
+
+Serve publishes a snapshot, loads final settings and middleware from that snapshot, and atomically
+binds all enabled transports on one shared port before starting workers or reporting readiness.
+Editing `worldant.ts` does not change a running node; stop and rerun serve to publish and apply new
+configuration. A bind failure releases partial listeners and starts no workers, but does not remove
+the newly published immutable snapshot. Shutdown awaits the node's transports and background work.
 
 Middleware runs on served ingress before unary decoding and once when a subscription is
 established. It may replace payload and opaque context, reject, or return a unary response.

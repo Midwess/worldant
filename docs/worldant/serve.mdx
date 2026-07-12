@@ -6,8 +6,21 @@ description: Running a built world and supervising durable work.
 `worldant serve` builds the current world, publishes a snapshot, starts the data plane, serves the
 wire endpoint, and runs Workflow workers when the snapshot contains Workflows.
 
-Configuration belongs in `worldant.ts`, including listen address, data directory, external DSN,
-pool limits, scheduler limits, and worker counts.
+Configuration belongs in `worldant.ts`, including the required serve-time `wire` object, data
+directory, external DSN, pool limits, scheduler limits, and worker counts. `wire` separates the
+stable world `name` from deployment `nodeName`, requires an IP-literal bind address and explicit
+transport booleans, and uses one port for WebSocket and WebTransport. At least one transport must be
+enabled.
+
+Serve loads final settings and middleware from the newly published snapshot. Configuration changes
+do not affect a live process; stop and rerun serve to publish and apply them. All enabled transports
+bind atomically before workers start or readiness is reported. A bind failure leaves the immutable
+snapshot published but releases partial listeners and starts no workers. Port `0` selects one shared
+ephemeral port and readiness reports the resolved endpoint.
+
+SIGINT, SIGTERM, or a critical transport or worker failure cancels the complete node. Shutdown
+awaits transports, workers, the sweeper, execution host, configuration runtime, and data plane so
+bound sockets can be reused.
 
 The host uses evictable JavaScript runtime slots keyed by snapshot and entrypoint. Eviction never
 loses durable truth because Workflow progress and application data live in PostgreSQL.
