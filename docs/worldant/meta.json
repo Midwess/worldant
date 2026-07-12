@@ -12,9 +12,8 @@
     "workflows",
     "adr-command-transactions",
     "protocol",
-    "reactive",
-    "supervisor",
+    "streams",
+    "serve",
     "configuration"
   ]
 }
-

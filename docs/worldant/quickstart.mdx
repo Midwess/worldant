@@ -23,14 +23,28 @@ todo/
   tests/
 ```
 
-Add a Command under `commands/`:
+Add a migration under `migrations/0001_init.sql`:
+
+```sql
+create table todo_items (
+  id bigint generated always as identity primary key,
+  title text not null,
+  done boolean not null default false,
+  created_at timestamptz not null default now()
+);
+```
+
+Add a Command under `commands/add.ts`:
 
 ```ts
 import { db, sql } from "worldant"
 
-export default async function add(input) {
-  await db.exec(sql`insert into todos (id, title, done) values (${input.id}, ${input.title}, false)`)
-  return db.one(sql`select * from todos where id = ${input.id}`)
+export default async function add(input: { title: string }) {
+  return db.one(sql`
+    insert into todo_items (title)
+    values (${input.title})
+    returning id, title, done, created_at
+  `)
 }
 ```
 
@@ -47,8 +61,7 @@ Call it:
 import { createWorld } from "worldant-client"
 
 const world = createWorld({ url: "ws://127.0.0.1:8787/__worldant/v1/ws" })
-const todo = await world.todo.add({ id: "t1", title: "Buy milk" }, { key: "todo:t1:add" })
+const todo = await world.todo.add({ title: "Buy milk" }, { key: "todo:add:buy-milk" })
 ```
 
 Use Workflows for work that must survive retries, waits, process failure, or restart.
-

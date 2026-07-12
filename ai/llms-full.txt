@@ -8,8 +8,9 @@ Worldant worlds are ordinary directories. The single-app layout uses root `comma
 `workflows/`, `workflows/steps/`, `migrations/`, `lib/`, and `tests/`. Existing multi-app worlds can
 use `apps/<app>/...`.
 
-The world directory name is the app namespace for single-app worlds. In multi-app worlds, the app
-directory name is the app namespace.
+Single-app worlds use `worldant.ts` `name` as the app namespace when set. Without it, Worldant
+normalizes the world directory name into a valid identifier. In multi-app worlds, the app directory
+name is the app namespace.
 
 Identity comes from paths:
 

@@ -30,7 +30,8 @@ path-traversal archives, and redirects to disallowed origins. See [INSTALL.md](I
 ## What Worldant runs
 
 Two public callable concepts, identified by filesystem path. `worldant init` creates the single-app
-root layout; existing multi-app worlds may use the `apps/<app>/...` layout.
+root layout. Set `name` in `worldant.ts` to choose the app namespace, or let Worldant normalize the
+directory name. Existing multi-app worlds may use the `apps/<app>/...` layout.
 
 | Path | Kind | Meaning |
 |------|------|---------|

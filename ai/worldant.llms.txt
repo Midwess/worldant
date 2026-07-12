@@ -34,13 +34,13 @@ Use the generic client handle:
 import { createWorld } from "worldant-client"
 
 const world = createWorld({ url: "ws://127.0.0.1:8787/__worldant/v1/ws" })
-const result = await world.todo.add({ id: "t1", title: "Buy milk", done: false })
+const result = await world.todo.add({ title: "Buy milk" })
 ```
 
 Commands return one result immediately. Use an idempotency key when retrying a write:
 
 ```ts
-await world.todo.add(input, { key: "todo:t1:add" })
+await world.todo.add(input, { key: "todo:add:buy-milk" })
 ```
 
 Workflows need two awaits:
@@ -58,8 +58,11 @@ Commands import supported capabilities from `worldant`:
 import { db, sql } from "worldant"
 
 export default async function add(input) {
-  await db.exec(sql`insert into todos (id, title, done) values (${input.id}, ${input.title}, false)`)
-  return db.one(sql`select * from todos where id = ${input.id}`)
+  return db.one(sql`
+    insert into todo_items (title)
+    values (${input.title})
+    returning id, title, done, created_at
+  `)
 }
 ```
 

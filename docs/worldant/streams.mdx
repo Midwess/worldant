@@ -1,13 +1,11 @@
 ---
-title: Realtime streams
-description: Event streams and collection synchronization without authored Reactive artifacts.
+title: Streams
+description: Event streams and collection synchronization as protocol facilities.
 ---
 
-Worldant supports realtime observation as protocol and data-plane facilities. It does not use
-authored Reactive or Rule artifacts.
+Worldant supports realtime observation as protocol and data-plane facilities.
 
 Streams read durable rows by cursor. Notifications are wakeups; PostgreSQL rows remain the record.
 
 Applications can expose synced collection descriptors and event streams. These are separate from
 public callable artifacts. Do not create a `reactive/` folder.
-

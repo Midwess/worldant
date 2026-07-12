@@ -10,7 +10,7 @@ A Command is a default-exported TypeScript function under `commands/` or
 import { db, sql } from "worldant"
 
 export default async function open(input) {
-  return db.many(sql`select * from todos where done = false order by id`)
+  return db.many(sql`select * from todo_items where done = false order by id`)
 }
 ```
 
@@ -23,11 +23,10 @@ Use `db.transaction(callback)` when several Command database operations must com
 
 ```ts
 await db.transaction(async (tx) => {
-  await tx.exec(sql`insert into audit (id) values (${input.id})`)
-  return tx.one(sql`select * from todos where id = ${input.id}`)
+  await tx.exec(sql`update todo_items set done = true where id = ${input.id}`)
+  return tx.one(sql`select * from todo_items where id = ${input.id}`)
 })
 ```
 
 Only `tx.*` calls enlist in the explicit transaction. Plain `db.*` calls inside the callback remain
 independent.
-
