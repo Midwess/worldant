@@ -12,7 +12,7 @@ only signed, immutable release artifacts — it never builds the runtime from pr
 
 ```bash
 npm install --global @midwess/worldant
-worldant --version
+worldant --help
 ```
 
 The npm package is a thin, verifying installer. On install it:

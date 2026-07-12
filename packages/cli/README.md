@@ -4,7 +4,7 @@ Thin, verifying installer and launcher for the Worldant runtime.
 
 ```bash
 npm install --global @midwess/worldant
-worldant --version
+worldant --help
 ```
 
 This package does not contain the runtime binary. On install it fetches a signed release manifest,

@@ -6,7 +6,7 @@ A minimal Worldant world. It runs only against a released `worldant` binary — 
 
 ```bash
 npm install --global @midwess/worldant
-worldant --version
+worldant --help
 ```
 
 ## 2. Initialize (or use this folder)

@@ -9,7 +9,7 @@
 
 ```bash
 npm install --global @midwess/worldant
-worldant --version
+worldant --help
 ```
 
 ## What the installer verifies
