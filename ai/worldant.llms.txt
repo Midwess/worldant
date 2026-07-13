@@ -77,6 +77,41 @@ or other nondeterministic APIs.
 Steps perform supported IO for Workflows. Step database effects and durable completion share one
 kernel-owned transaction. `db.transaction` is unavailable in Steps.
 
+## Database Configuration
+
+The root `worldant.ts` uses `pgpaw` as the single source of truth for database configuration. It is
+a strict union:
+
+```ts
+type PgPawConfig =
+  | {
+      builtin: true
+      dataDir: string
+      databaseName: string
+      minConnections: number
+      maxConnections: number
+    }
+  | {
+      builtin: false
+      remoteAddress: string
+      minConnections: number
+      maxConnections: number
+    }
+```
+
+`databaseName` applies to embedded PostgreSQL. In remote mode, `remoteAddress` is the DSN and its
+database component selects the remote database. Do not use top-level `dsn`, `dataDir`, or
+`poolMaxConnections` fields.
+
+In builtin mode, PgPaw owns the one embedded primary. Worldant obtains its DSN through PgPaw's public
+API and opens a direct SQLx PostgreSQL pool for all application and kernel database work. A
+listenerless PgPaw child separately joins the Worldant node over a private Unix socket and registers
+read-only `pgpaw.read`, `pgpaw.cursor`, and `pgpaw.live` services. This child is additive: database
+writes never traverse the wire protocol, and there is no replica or public PgPaw listener.
+
+Serve completes private child establishment and route synchronization before public Worldant
+hosting, starts Workflow workers after public binding succeeds, and reports readiness last.
+
 ## Auth and RLS
 
 Worldant does not define users, JWT formats, claims, tenants, roles, or token validation.

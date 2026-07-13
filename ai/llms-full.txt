@@ -94,7 +94,13 @@ export default {
     webTransport: true,
     webSocket: true,
   },
-  dataDir: ".worldant/data",
+  pgpaw: {
+    builtin: true,
+    dataDir: ".worldant/data",
+    databaseName: "postgres",
+    minConnections: 0,
+    maxConnections: 2,
+  },
   middleware: [],
 } satisfies NodeConfig
 ```
@@ -105,11 +111,25 @@ be explicit, and at least one transport must be enabled. WebSocket controls the 
 surface, including `/__worldant/v1/ws`, `/__worldant/v1/llms.txt`, and HTTP knowledge routes.
 WebTransport carries the wire profile, including knowledge, without enabling those HTTP routes.
 
+`pgpaw` is the only database configuration surface and is a strict union. For embedded PostgreSQL,
+use `builtin: true` with `dataDir`, `databaseName`, `minConnections`, and `maxConnections`;
+`databaseName` selects the embedded database. For remote PostgreSQL, use `builtin: false` with
+`remoteAddress`, `minConnections`, and `maxConnections`; `remoteAddress` is the DSN and selects the
+remote database. Do not mix fields from the two variants.
+
 Serve publishes a snapshot, loads final settings and middleware from that snapshot, and atomically
 binds all enabled transports on one shared port before starting workers or reporting readiness.
 Editing `worldant.ts` does not change a running node; stop and rerun serve to publish and apply new
 configuration. A bind failure releases partial listeners and starts no workers, but does not remove
 the newly published immutable snapshot. Shutdown awaits the node's transports and background work.
+
+In builtin mode, PgPaw owns the one embedded primary. Worldant obtains its DSN through PgPaw's public
+API and opens a direct SQLx PostgreSQL pool for application and kernel reads, writes, transactions,
+migrations, and notifications. A listenerless PgPaw child also joins the Worldant node over an
+owner-only private Unix socket and registers the read-only `pgpaw.read`, `pgpaw.cursor`, and
+`pgpaw.live` subjects. This creates no replica or public PgPaw listener. Serve completes child route
+synchronization before public hosting, starts Workflow workers after public binding, and reports
+readiness last.
 
 Middleware runs on served ingress before unary decoding and once when a subscription is
 established. It may replace payload and opaque context, reject, or return a unary response.

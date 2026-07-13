@@ -7,7 +7,9 @@ description: Running a built world and supervising durable work.
 wire endpoint, and runs Workflow workers when the snapshot contains Workflows.
 
 Configuration belongs in `worldant.ts`, including the required serve-time `wire` object, data
-directory, external DSN, pool limits, scheduler limits, and worker counts. `wire` separates the
+plane `pgpaw` object, scheduler limits, and worker counts. The strict `pgpaw` union contains either
+embedded settings (`builtin: true`, `dataDir`, `databaseName`, and pool limits) or remote settings
+(`builtin: false`, a DSN in `remoteAddress`, and pool limits). `wire` separates the
 stable world `name` from deployment `nodeName`, requires an IP-literal bind address and explicit
 transport booleans, and uses one port for WebSocket and WebTransport. At least one transport must be
 enabled.
@@ -18,9 +20,16 @@ bind atomically before workers start or readiness is reported. A bind failure le
 snapshot published but releases partial listeners and starts no workers. Port `0` selects one shared
 ephemeral port and readiness reports the resolved endpoint.
 
+With builtin PgPaw, serve opens the embedded primary and direct SQLx PostgreSQL pool, migrates and
+builds, constructs the Worldant node, binds an owner-only private Unix parent socket, then attaches
+the listenerless PgPaw child and waits for route synchronization. Only then does it bind public
+Worldant transports, start Workflow workers, and report readiness. The private socket is not an
+author setting and is not published through endpoint discovery.
+
 SIGINT, SIGTERM, or a critical transport or worker failure cancels the complete node. Shutdown
 awaits transports, workers, the sweeper, execution host, configuration runtime, and data plane so
-bound sockets can be reused.
+bound sockets can be reused. Embedded shutdown closes the PgPaw child topology and direct pool before
+closing the primary.
 
 The host uses evictable JavaScript runtime slots keyed by snapshot and entrypoint. Eviction never
 loses durable truth because Workflow progress and application data live in PostgreSQL.

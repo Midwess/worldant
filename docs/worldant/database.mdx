@@ -5,6 +5,20 @@ description: PostgreSQL truth, migrations, request headers, and row-level securi
 
 Worldant uses one PostgreSQL data plane as durable truth and realtime source.
 
+The root `worldant.ts` configures that data plane only through the strict `pgpaw` object. Embedded
+mode (`builtin: true`) uses `dataDir` and `databaseName`; `databaseName` applies to the embedded
+PostgreSQL engine. Remote mode (`builtin: false`) uses `remoteAddress`, whose DSN selects the remote
+database. Both modes require `minConnections` and `maxConnections`.
+
+In embedded mode, PgPaw owns the primary and exposes its DSN through its Rust API. Worldant opens a
+direct SQLx PostgreSQL pool from that DSN. Application and kernel reads, writes, transactions,
+migrations, and notifications use this pool; they do not traverse the wire protocol.
+
+The primary also attaches PgPaw's read-only and realtime services to the Worldant node as a
+listenerless child over a private Unix socket. This adds routed `pgpaw.read`, `pgpaw.cursor`, and
+`pgpaw.live` services without creating another database, replica, public PgPaw HTTP endpoint, or
+public PgPaw wire listener.
+
 Applications define schema with ordered SQL migrations. Generated TypeScript schema files are
 derived output and should not be edited.
 

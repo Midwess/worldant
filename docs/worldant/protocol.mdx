@@ -16,6 +16,12 @@ The public profile exposes:
 - Subscription streams for events, synced collections, and run status.
 - Catalog and AI knowledge payloads.
 
+In builtin mode, the same Worldant node privately parents a listenerless PgPaw child. Route
+synchronization makes the child subjects `pgpaw.read`, `pgpaw.cursor`, and `pgpaw.live` reachable
+through the node graph. They provide read-only query, cached-cursor, and live-query behavior;
+mutating SQL remains rejected. The private Unix parent endpoint is neither a browser endpoint nor a
+separate public PgPaw listener.
+
 The same TCP surface provides plain text knowledge:
 
 ```text

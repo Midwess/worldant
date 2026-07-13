@@ -18,8 +18,13 @@ export default {
     webTransport: true,
     webSocket: true,
   },
-  dataDir: ".worldant/data",
-  poolMaxConnections: 2,
+  pgpaw: {
+    builtin: true,
+    dataDir: ".worldant/data",
+    databaseName: "postgres",
+    minConnections: 0,
+    maxConnections: 2,
+  },
   maxWorkflowWorkers: 2,
   middleware: [
     async function auth(request, context, next) {
@@ -34,12 +39,23 @@ The CLI keeps runtime settings out of flags. Runtime settings belong in `worldan
 `name` sets the single-app namespace. If omitted, Worldant converts the world directory name to a
 valid identifier, for example `toy-store` becomes `toy_store`.
 
+`pgpaw` is the single source of truth for database configuration and is a strict union. Set
+`builtin: true` with `dataDir`, `databaseName`, `minConnections`, and `maxConnections` to run the
+embedded PostgreSQL engine. `databaseName` selects the database created and used by that embedded
+engine. Set `builtin: false` with `remoteAddress`, `minConnections`, and `maxConnections` to connect
+to remote PostgreSQL; `remoteAddress` is the DSN, and its database component selects the remote
+database. Embedded-only and remote-only fields cannot be mixed.
+
 `wire.nodeName` is the deployment topology identity. It may equal `name`, but changing it does not
 change the world subject or callable addresses. `wire.bindAddress` must be an IPv4 or IPv6 literal,
 `wire.port` is shared by enabled transports and may be `0` for an ephemeral shared port, and at
 least one of `wire.webTransport` and `wire.webSocket` must be true. Unknown or incomplete settings
 fail closed. WebSocket enables the complete TCP surface, including HTTP knowledge routes; disabling
 it leaves those routes unavailable even when WebTransport is enabled.
+
+Embedded PgPaw child routing requires no additional configuration. Worldant derives an owner-only
+temporary Unix socket, expects the `pgpaw` child identity, and attaches the child before public
+hosting. Do not expose or persist that private socket as a client endpoint.
 
 Middleware runs before unary decoding and once when a subscription is established. It may reject,
 replace payload, replace opaque context, or return a unary response. Streaming middleware cannot
