@@ -9,6 +9,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.8] — 2026-07-13
+
+### Changed
+- Maintenance release carrying the current committed Worldant source, public package metadata,
+  examples, and az-wire submodule updates after `1.0.7`.
+
 ## [1.0.7] — 2026-07-13
 
 ### Added
@@ -63,7 +69,8 @@ prior private release scheme; those historical tags and releases remain with the
 and are **not** republished here. `1.0.0` marks the start of the signed, immutable public
 distribution — it is not a continuation of the private `0.x` source-release line.
 
-[Unreleased]: https://github.com/Midwess/worldant/compare/v1.0.7...HEAD
+[Unreleased]: https://github.com/Midwess/worldant/compare/v1.0.8...HEAD
+[1.0.8]: https://github.com/Midwess/worldant/compare/v1.0.7...v1.0.8
 [1.0.7]: https://github.com/Midwess/worldant/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/Midwess/worldant/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/Midwess/worldant/compare/v1.0.4...v1.0.5
