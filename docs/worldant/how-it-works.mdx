@@ -28,6 +28,8 @@ Hosted capabilities are intentionally explicit:
 - Workflow scheduling and replay.
 - Step database effects with durable completion.
 - Event and collection transport facilities.
+- The full Bun/Node builtin surface in Commands and Steps: external `fetch`, timers, filesystem
+  access, and `node:`/`bun:` modules, exactly as a normal Bun process provides them.
 
-External network clients, author-accessible timers outside durable Workflow primitives, filesystem
-access, and arbitrary Node or Deno runtime APIs are not general hosted capabilities.
+Workflow bodies stay deterministic regardless: the build rejects external imports reachable from a
+Workflow closure, and replay contexts expose no IO surface.
