@@ -55,8 +55,17 @@ jobs:
           repository: Midwess/worldant-internal
           ref: ${{ inputs.source_ref }}
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
-          submodules: recursive
           path: source
+
+      - name: Check out submodules over HTTPS with token
+        working-directory: source
+        env:
+          SUBMODULE_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config --global url."https://x-access-token:${SUBMODULE_TOKEN}@github.com/".insteadOf "git@github.com:"
+          git submodule sync --recursive
+          git submodule update --init --recursive az-wire pgpaw vendor/bun
 
       - name: Install toolchain (macOS)
         if: runner.os == 'macOS'
