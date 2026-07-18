@@ -57,15 +57,23 @@ jobs:
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
           path: source
 
-      - name: Check out submodules over HTTPS with token
-        working-directory: source
+      - name: Check out engine and data-plane sources
         env:
           SUBMODULE_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
         run: |
           set -euo pipefail
           git config --global url."https://x-access-token:${SUBMODULE_TOKEN}@github.com/".insteadOf "git@github.com:"
-          git submodule sync --recursive
-          git submodule update --init --recursive az-wire pgpaw vendor/bun
+          # Embedded Bun engine submodule (public).
+          git -C source submodule update --init --recursive vendor/bun
+          # The workspace resolves pgpaw + az-wire from a sibling ../PgPaw checkout
+          # (root Cargo.toml paths). Its URL and commit come from source so no
+          # private identifiers live in this public workflow; the pinned commit's
+          # nested az-wire matches worldant's az-wire pin (three-tree alignment).
+          pgpaw_url="$(git -C source config -f .gitmodules submodule.pgpaw.url)"
+          pgpaw_sha="$(git -C source rev-parse HEAD:pgpaw)"
+          git clone "$pgpaw_url" PgPaw
+          git -C PgPaw checkout "$pgpaw_sha"
+          git -C PgPaw submodule update --init --recursive az-wire
 
       - name: Install toolchain (macOS)
         if: runner.os == 'macOS'
