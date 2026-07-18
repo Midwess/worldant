@@ -149,7 +149,7 @@ jobs:
           BIN="$(ls -t target/"$TARGET"/release/deps/world_host-* | grep -v '\.d$' | head -1)"
           echo "test binary: $BIN"
           test -n "$BIN"
-          gdb -batch -ex "set pagination off" -ex run -ex "bt" -ex "info threads" -ex "thread apply all bt 25" --args "$BIN" --test-threads=1 2>&1 | tail -200 || true
+          gdb -batch -ex "set pagination off" -ex run -ex "bt" -ex "frame 1" -ex "x/16i \$pc-0x40" -ex "info threads" -ex "thread apply all bt 25" --args "$BIN" --test-threads=1 2>&1 | tail -220 || true
 
       - name: Test the engine on this platform
         working-directory: source
