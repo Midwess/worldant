@@ -1,5 +1,10 @@
 name: Build and release Worldant
 
+# Builds the worldant CLI from private source on every supported platform, bootstrapping the
+# embedded Bun engine (vendor/bun C++ objects) and running the engine test suite per platform
+# before packaging. The release job (sign + npm + GitHub Release) runs only when run_release is
+# true, so platform bring-up can iterate on build+test without publishing anything.
+
 on:
   workflow_dispatch:
     inputs:
@@ -11,6 +16,11 @@ on:
         description: Private source branch, tag, or SHA
         required: true
         default: release/1.0.0-source
+      run_release:
+        description: Sign, publish to npm, and create the GitHub Release (leave false to only build+test)
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: write
@@ -22,7 +32,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build ${{ matrix.key }}
+    name: Build and test ${{ matrix.key }}
     environment: release
     strategy:
       fail-fast: false
@@ -31,9 +41,6 @@ jobs:
           - runner: macos-14
             target: aarch64-apple-darwin
             key: darwin-arm64
-          - runner: macos-14
-            target: x86_64-apple-darwin
-            key: darwin-x64
           - runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             key: linux-x64
@@ -50,28 +57,86 @@ jobs:
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
           submodules: recursive
           path: source
-      - uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921
+
+      - name: Install toolchain (macOS)
+        if: runner.os == 'macOS'
+        run: brew install llvm@21 ninja
+
+      - name: Install toolchain (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ninja-build python3 lld
+          wget -qO /tmp/llvm.sh https://apt.llvm.org/llvm.sh
+          chmod +x /tmp/llvm.sh
+          sudo /tmp/llvm.sh 21
+          {
+            echo "CC=clang-21"
+            echo "CXX=clang++-21"
+            echo "CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=clang-21"
+            echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=clang-21"
+          } >> "$GITHUB_ENV"
+
+      - name: Install bun (runs bun's own C++ codegen)
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          toolchain: stable
-          targets: ${{ matrix.target }}
+          bun-version: latest
+
+      - name: Rust toolchain from rust-toolchain.toml
+        working-directory: source
+        run: rustup show
+
+      - name: Resolve bun submodule commit for cache key
+        id: bun
+        working-directory: source
+        run: echo "sha=$(git -C vendor/bun rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the bun engine build
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            source/vendor/bun/build
+            ~/.bun/build-cache
+          key: bun-v1-${{ matrix.key }}-${{ steps.bun.outputs.sha }}
+
+      - name: Bootstrap the embedded Bun engine
+        working-directory: source
+        env:
+          WORLDANT_BUN_TARGET: ${{ matrix.target }}
+        run: scripts/bun/bootstrap.sh
+
       - name: Build CLI
         working-directory: source
         env:
           CARGO_INCREMENTAL: "0"
-        run: |
-          sed -i.bak 's/^version = ".*"/version = "${{ inputs.version }}"/' Cargo.toml
-          rm -f Cargo.toml.bak
-          cargo build --release --target "${{ matrix.target }}" -p worldant-cli --bin worldant
-      - name: Package binary
-        shell: bash
+          VERSION: ${{ inputs.version }}
+          TARGET: ${{ matrix.target }}
         run: |
           set -euo pipefail
-          version='${{ inputs.version }}'
-          key='${{ matrix.key }}'
+          sed -i.bak "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml
+          rm -f Cargo.toml.bak
+          cargo build --release --target "$TARGET" -p worldant-cli --bin worldant
+
+      - name: Test the engine on this platform
+        working-directory: source
+        env:
+          CARGO_INCREMENTAL: "0"
+          TARGET: ${{ matrix.target }}
+        run: cargo test --release --target "$TARGET" -p world-host -p world-share -p world-build
+
+      - name: Package binary
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+          KEY: ${{ matrix.key }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
           mkdir -p package/bin
-          cp "source/target/${{ matrix.target }}/release/worldant" package/bin/worldant
+          cp "source/target/$TARGET/release/worldant" package/bin/worldant
           chmod +x package/bin/worldant
-          tar -C package -czf "worldant-${version}-${key}.tar.gz" bin/worldant
+          tar -C package -czf "worldant-$VERSION-$KEY.tar.gz" bin/worldant
       - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
         with:
           name: worldant-${{ matrix.key }}
@@ -81,6 +146,7 @@ jobs:
   release:
     name: Sign, publish, and verify
     needs: build
+    if: ${{ inputs.run_release }}
     runs-on: ubuntu-latest
     environment: release
     steps:
