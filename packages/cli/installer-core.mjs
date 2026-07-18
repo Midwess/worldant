@@ -9,7 +9,7 @@ export class InstallError extends Error {
   }
 }
 
-const SUPPORTED_TARGETS = new Set(["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64"])
+const SUPPORTED_TARGETS = new Set(["darwin-arm64", "linux-arm64", "linux-x64"])
 
 const ARCH_ALIASES = { x64: "x64", arm64: "arm64" }
 

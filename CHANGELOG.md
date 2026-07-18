@@ -26,6 +26,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Removed
 - **Breaking**: the `schedulerThreads` key in `worldant.ts` is rejected with an explicit
   migration error. Replace it with `minVms`, `maxVms`, and `vmIdleTtlSecs`.
+- `darwin-x64` (Intel Mac) binaries. The embedded engine currently builds for arm64 macOS and
+  x64/arm64 Linux; Intel Mac support returns when the engine gains an x86_64 macOS build.
 
 ## [1.0.8] — 2026-07-13
 

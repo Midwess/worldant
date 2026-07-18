@@ -8,7 +8,7 @@ if (!/^\d+\.\d+\.\d+$/.test(version || "")) throw new Error("VERSION must be exa
 const dir = "release-assets"
 const digest = (path) => createHash("sha256").update(readFileSync(path)).digest("hex")
 const artifacts = {}
-for (const target of ["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64"]) {
+for (const target of ["darwin-arm64", "linux-arm64", "linux-x64"]) {
   const name = `worldant-${version}-${target}.tar.gz`
   const path = join(dir, name)
   artifacts[target] = {
