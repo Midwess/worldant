@@ -11,7 +11,7 @@ on:
       version:
         description: Exact version
         required: true
-        default: 1.0.8
+        default: 1.1.0
       source_ref:
         description: Private source branch, tag, or SHA
         required: true
@@ -65,15 +65,18 @@ jobs:
           git config --global url."https://x-access-token:${SUBMODULE_TOKEN}@github.com/".insteadOf "git@github.com:"
           # Embedded Bun engine submodule (public).
           git -C source submodule update --init --recursive vendor/bun
-          # The workspace resolves pgpaw + az-wire from a sibling ../PgPaw checkout
-          # (root Cargo.toml paths). Its URL and commit come from source so no
-          # private identifiers live in this public workflow; the pinned commit's
-          # nested az-wire matches worldant's az-wire pin (three-tree alignment).
+          # The workspace resolves its data-plane path deps from a sibling
+          # ../PgPaw checkout (root Cargo.toml). Its URL and commit come from
+          # source so no private identifiers live in this public workflow; the
+          # pinned commit's nested submodule pins match source's (tree alignment).
           pgpaw_url="$(git -C source config -f .gitmodules submodule.pgpaw.url)"
           pgpaw_sha="$(git -C source rev-parse HEAD:pgpaw)"
           git clone "$pgpaw_url" PgPaw
           git -C PgPaw checkout "$pgpaw_sha"
-          git -C PgPaw submodule update --init --recursive az-wire
+          git -C PgPaw config -f .gitmodules --get-regexp 'submodule\..*\.path' | awk '{print $2}' | while read -r sub; do
+            [ "$sub" = "docs" ] && continue
+            git -C PgPaw submodule update --init --recursive "$sub"
+          done
 
       - name: Install toolchain (macOS)
         if: runner.os == 'macOS'

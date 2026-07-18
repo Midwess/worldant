@@ -9,11 +9,29 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-07-18
+
+### Added
+- Linux binaries: `linux-x64` and `linux-arm64` (glibc) join `darwin-arm64`. Every platform now
+  builds, links, and passes the full engine test suite in the release pipeline before packaging.
+
+### Changed
+- The JavaScript engine is now embedded Bun over JavaScriptCore. Commands and Steps run with the
+  complete Bun/Node builtin surface (`fetch`, timers, filesystem, `node:` modules); Workflow
+  replay remains deterministic in raw JSC contexts.
+- The activation VM pool is elastic: it grows one VM at a time under load between `minVms`
+  (default 0) and `maxVms` (default the machine's core count) and retires VMs idle past
+  `vmIdleTtlSecs` (default 300) back down to the floor. Idle worlds no longer hold engine memory.
+
+### Removed
+- **Breaking**: the `schedulerThreads` key in `worldant.ts` is rejected with an explicit
+  migration error. Replace it with `minVms`, `maxVms`, and `vmIdleTtlSecs`.
+
 ## [1.0.8] — 2026-07-13
 
 ### Changed
 - Maintenance release carrying the current committed Worldant source, public package metadata,
-  examples, and az-wire submodule updates after `1.0.7`.
+  examples, and dependency refreshes after `1.0.7`.
 
 ## [1.0.7] — 2026-07-13
 
