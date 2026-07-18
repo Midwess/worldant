@@ -81,7 +81,9 @@ declare module "worldant" {
     dataDir?: string;
     poolMaxConnections?: number;
     maxWorkflowWorkers?: number;
-    schedulerThreads?: number;
+    minVms?: number;
+    maxVms?: number;
+    vmIdleTtlSecs?: number;
     mailboxCap?: number;
     replicaCap?: number;
     warmSetBudget?: number;
