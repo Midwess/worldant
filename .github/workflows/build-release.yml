@@ -114,8 +114,9 @@ jobs:
         with:
           path: |
             source/vendor/bun/build
+            source/vendor/bun/vendor
             ~/.bun/build-cache
-          key: bun-v1-${{ matrix.key }}-${{ steps.bun.outputs.sha }}
+          key: bun-v2-${{ matrix.key }}-${{ steps.bun.outputs.sha }}
 
       - name: Bootstrap the embedded Bun engine
         working-directory: source
