@@ -146,7 +146,7 @@ jobs:
   release:
     name: Sign, publish, and verify
     needs: build
-    if: ${{ inputs.run_release }}
+    if: ${{ inputs.run_release == true }}
     runs-on: ubuntu-latest
     environment: release
     steps:
