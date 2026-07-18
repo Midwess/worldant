@@ -136,35 +136,6 @@ jobs:
           rm -f Cargo.toml.bak
           cargo build --release --target "$TARGET" -p worldant-cli --bin worldant
 
-      - name: Probe the null call relocation (temporary bring-up step)
-        if: runner.os == 'Linux'
-        run: |
-          set -euxo pipefail
-          WK="$(ls -d "$HOME"/.bun/build-cache/webkit-*/lib | head -1)"
-          MEMBER="$(nm -A "$WK/libJavaScriptCore.a" 2>/dev/null | grep " T _ZN3JSC19ExecutableAllocator29initializeUnderlyingAllocatorEv" | head -1 | cut -d: -f2)"
-          echo "member: $MEMBER"
-          mkdir -p /tmp/wkprobe && cd /tmp/wkprobe
-          ar x "$WK/libJavaScriptCore.a" "$MEMBER"
-          objdump -dr "$MEMBER" | grep -A8 "initializeUnderlyingAllocatorEv>:" | head -60
-          objdump -dr "$MEMBER" | awk '/initializeUnderlyingAllocatorEv>:/{f=1} f&&/R_X86_64|R_AARCH64/{print} f&&/^$/{exit}' | head -30
-          echo "=== undefined weak symbols in member ==="
-          nm "$MEMBER" | awk '$1=="w"||$1=="v"{print}' | head -40
-
-      - name: Debug engine crash under gdb (temporary bring-up step)
-        if: runner.os == 'Linux'
-        working-directory: source
-        env:
-          CARGO_INCREMENTAL: "0"
-          TARGET: ${{ matrix.target }}
-        run: |
-          set -euo pipefail
-          sudo apt-get install -y gdb >/dev/null
-          cargo test --release --target "$TARGET" -p world-host --lib --no-run
-          BIN="$(ls -t target/"$TARGET"/release/deps/world_host-* | grep -v '\.d$' | head -1)"
-          echo "test binary: $BIN"
-          test -n "$BIN"
-          gdb -batch -ex "set pagination off" -ex run -ex "bt" -ex "frame 1" -ex "x/16i \$pc-0x40" -ex "info threads" -ex "thread apply all bt 25" --args "$BIN" --test-threads=1 2>&1 | tail -220 || true
-
       - name: Test the engine on this platform
         working-directory: source
         env:
