@@ -13,8 +13,9 @@ network, filesystem, ambient timers, randomness, or other nondeterministic capab
 Steps live under `workflows/steps/` or `apps/<app>/workflows/steps/`. They are internal Workflow IO
 checkpoints and are never public callables.
 
-Step database effects, transaction-bound Workflow scheduling, Step output, and durable completion
-commit atomically in one kernel-owned transaction. `db.transaction` is unavailable in Steps.
+Step output, emitted signals, transaction-bound Workflow scheduling, and job disposition commit
+atomically as one fenced kernel transition. Application SQL through `pgpaw.sql` commits
+independently and must be idempotent across Step retries.
 
 ## Authoring a Workflow with Steps
 
@@ -41,12 +42,14 @@ and branching on `item.done` replays from the recorded Step output. Workflows ma
 
 ```ts
 // workflows/steps/loadItem.ts
-import { db, sql } from "worldant"
+import { pgpaw } from "worldant"
 
 export default async function loadItem(input: { id: number }) {
-  return db.one<{ id: number; title: string; done: boolean }>(sql`
-    select id, title, done from todo_items where id = ${input.id}
-  `)
+  const reply = await pgpaw.sql<{ id: number; title: string; done: boolean }>(
+    "select id, title, done from todo_items where id = $1",
+    [input.id],
+  )
+  return reply.rows[0]
 }
 ```
 

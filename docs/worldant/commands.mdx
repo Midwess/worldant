@@ -7,30 +7,25 @@ A Command is a default-exported TypeScript function under `commands/` or
 `apps/<app>/commands/`.
 
 ```ts
-import { db, sql } from "worldant"
+import { pgpaw } from "worldant"
 
 export default async function open(input) {
-  return db.many(sql`select * from todo_items where done = false order by id`)
+  const reply = await pgpaw.sql(
+    "select * from todo_items where done = false order by id",
+  )
+  return reply.rows
 }
 ```
 
 Commands do not receive a context argument. They import supported capabilities from `worldant`.
 
-Standalone `db.one`, `db.many`, and `db.exec` operations each use an independent database
-transaction. If the Command later throws, earlier standalone commits remain committed.
+`pgpaw.sql` executes exactly one parameterized statement on the PgPaw data node and answers
+`{ command, rows, rowsAffected }`. Each call commits independently: if the Command later throws,
+earlier commits remain committed. There is no handler-wide or multi-statement transaction
+surface — group effects that must commit together into one SQL statement (a CTE), or make the
+mutations idempotent.
 
-Use `db.transaction(callback)` when several Command database operations must commit atomically:
-
-```ts
-await db.transaction(async (tx) => {
-  await tx.exec(sql`update todo_items set done = true where id = ${input.id}`)
-  return tx.one(sql`select * from todo_items where id = ${input.id}`)
-})
-```
-
-Only `tx.*` calls enlist in the explicit transaction. Plain `db.*` calls inside the callback remain
-independent.
-
-Parameters bind as JSON: cast uuid parameters explicitly (`${input.id}::uuid`), unnest JS arrays
-with `jsonb_array_elements_text`, and expect `db.one` to reject on zero rows. The database page
-covers these gotchas with examples.
+Parameters bind as JSON against described types: cast non-JSON types via text
+(`($1::text)::uuid`), unnest JS arrays with `jsonb_array_elements_text($1)`, and check
+`reply.rows.length` when zero rows is a normal outcome. The database page covers these gotchas
+with examples.

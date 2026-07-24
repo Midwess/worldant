@@ -1,57 +1,81 @@
 ---
 title: Database and authorization
-description: PostgreSQL truth, migrations, request headers, and row-level security.
+description: PgPaw-owned application data, migrations, request headers, and row-level security.
 ---
 
-Worldant uses one PostgreSQL data plane as durable truth and realtime source.
+The PgPaw az-node owns the application data plane: migrations, schema, raw SQL, and realtime.
+Worldant retains only its private durability kernel and generates no application data client.
 
-The root `worldant.ts` configures that data plane only through the strict `pgpaw` object. Embedded
+The root `worldant.ts` configures the data plane only through the strict `pgpaw` object. Embedded
 mode (`builtin: true`) uses `dataDir` and `databaseName`; `databaseName` applies to the embedded
-PostgreSQL engine. Remote mode (`builtin: false`) uses `remoteAddress`, whose DSN selects the remote
-database. Both modes require `minConnections` and `maxConnections`.
+PostgreSQL engine. Remote mode (`builtin: false`) uses `remoteAddress`, whose DSN reaches the
+PgPaw-owned PostgreSQL carrying the durability kernel. Both modes require `minConnections` and
+`maxConnections`.
 
-In embedded mode, PgPaw owns the primary and exposes its DSN through its Rust API. Worldant opens a
-direct SQLx PostgreSQL pool from that DSN. Application and kernel reads, writes, transactions,
-migrations, and notifications use this pool; they do not traverse the wire protocol.
+In embedded mode, PgPaw owns the primary and exposes its DSN through its Rust API. Worldant opens
+a direct SQLx PostgreSQL pool from that DSN for kernel SQL; application SQL binds in-process to
+the primary's SQL operations under the neutral `pgpaw_public` role. The primary also attaches
+PgPaw's services to the Worldant node as a listenerless child over a private Unix socket. This
+adds the routed `pgpaw.sql` and `pgpaw.live` services without creating another database, replica,
+or public PgPaw listener.
 
-The primary also attaches PgPaw's read-only and realtime services to the Worldant node as a
-listenerless child over a private Unix socket. This adds routed `pgpaw.read`, `pgpaw.cursor`, and
-`pgpaw.live` services without creating another database, replica, public PgPaw HTTP endpoint, or
-public PgPaw wire listener.
+Applications define schema with ordered SQL migrations, applied through PgPaw's schema surface at
+build. A migration is immutable once applied and must remain present on disk; each file commits
+in its own transaction, so a mid-chain failure keeps earlier files applied. A destructive
+contraction (`DROP TABLE`, `DROP COLUMN`) is refused unless the file carries the
+`-- pgpaw: acknowledge-destructive` comment — acknowledge only after every run and snapshot
+depending on the prior schema has retired.
 
-Applications define schema with ordered SQL migrations. Generated TypeScript schema files are
-derived output and should not be edited.
+## The client
+
+Commands and Steps use the stable handwritten client bound by the activation:
+
+```ts
+import { pgpaw } from "worldant"
+
+const reply = await pgpaw.sql<{ id: string }>(
+  "select id from toys where owner = $1",
+  [input.owner],
+)
+// reply = { command: "SELECT", rows: [...], rowsAffected: 0 }
+```
+
+`pgpaw.sql` executes exactly one parameterized statement and always answers
+`{ command, rows, rowsAffected }`; you supply the row type. Each call commits independently —
+there is no handler-wide or multi-statement transaction, and a retried Step may re-issue a
+committed write, so mutations must be idempotent. Row-returning SQL must expose unique output
+column names. Realtime-safe live reads are served by the PgPaw node's own `pgpaw.live` root.
 
 ## Parameter binding
 
-`sql` template values bind as JSON parameters, not typed Postgres values. Three consequences:
+Parameters bind as JSON values against the statement's described types. Three consequences:
 
-**uuid columns need an explicit cast.** A bound parameter does not carry a Postgres type; compare
-or insert into `uuid` columns with a cast on the parameter:
+**Types outside the JSON families need a text cast.** Bind the value as text and cast in SQL:
 
 ```ts
-await db.one(sql`select * from toys where id = ${input.id}::uuid`)
+await pgpaw.sql("select * from toys where id = ($1::text)::uuid", [input.id])
 ```
 
-**A JS array binds as jsonb, not a Postgres array.** `= any(${arr})` fails. Unnest the jsonb value
+**A JS array binds as jsonb, not a Postgres array.** `= any($1)` fails. Unnest the jsonb value
 instead:
 
 ```ts
-await db.many(sql`
-  select * from toys
-  where id in (select jsonb_array_elements_text(${input.ids})::uuid)
-`)
+await pgpaw.sql(
+  "select * from toys where id in (select jsonb_array_elements_text($1)::uuid)",
+  [input.ids],
+)
 ```
 
-**`db.one` rejects on zero rows.** It resolves with the first row or throws; it never resolves
-`null`. When absence is a normal outcome, use `db.many` and check the length.
+**Absence is an empty `rows` array.** Check `reply.rows.length` when zero rows is a normal
+outcome.
 
 ## Authorization
 
 Worldant does not define users, JWTs, claims, tenants, or token validation. Applications bring
 their own authentication and authorization model.
 
-For served requests, Worldant exposes custom headers to SQL as transaction-local JSON:
+Application SQL executes under the fixed neutral `pgpaw_public` role (`NOLOGIN`, `NOBYPASSRLS`).
+For served requests, the activation's preserved headers reach SQL as transaction-local JSON:
 
 ```sql
 current_setting('request.headers', true)::jsonb
@@ -64,7 +88,7 @@ ALTER TABLE todos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE todos FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY todos_owner ON todos
-TO worldant_runtime
+TO pgpaw_public
 USING (
   owner_id = current_setting('request.headers', true)::jsonb->>'authorization'
 )
@@ -73,8 +97,8 @@ WITH CHECK (
 );
 ```
 
-Do not trust raw client headers in production unless they have been validated by a trusted gateway,
-middleware, or SQL function.
+Do not trust raw client headers in production unless they have been validated by a trusted
+gateway, middleware, or SQL function.
 
 Root `worldant.policy.json` can select kernel event visibility with `events` and `ownerHeader`.
 Application-table RLS belongs in migrations.

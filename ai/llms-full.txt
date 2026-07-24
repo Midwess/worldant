@@ -23,15 +23,16 @@ apps/todo/commands/add.ts               -> Command todo.add
 
 ## Runtime Boundaries
 
-Commands are immediate and non-durable. Each standalone database operation owns its own
-transaction. Explicit Command transactions use `db.transaction(callback)` and only `tx.*` calls
-enlist.
+Commands are immediate and non-durable. Application SQL goes through `pgpaw.sql(text, params)`,
+which executes exactly one parameterized statement and answers `{ command, rows, rowsAffected }`.
+Every call commits independently; there is no handler-wide or multi-statement transaction.
 
 Workflows are durable deterministic orchestration. They replay from the top against a PostgreSQL
 journal. Durable calls are correlated by position and replay returns recorded values.
 
-Steps are internal Workflow IO checkpoints. A Step gets one kernel-owned transaction for database
-effects, transaction-bound Workflow scheduling, Step output, and durable completion.
+Steps are internal Workflow IO checkpoints. Step output, emitted signals, scheduling, and job
+disposition commit atomically in the private fenced kernel transition; application SQL commits
+independently and must be idempotent across retries.
 
 A Workflow default-imports its Steps by relative path and awaits them like plain functions. Named
 Step imports are rejected at build time. Workflows may only import `sleep` and `waitForEvent` from
@@ -53,12 +54,14 @@ export default async function remind(input: { id: number; delayMs: number }) {
 
 ```ts
 // workflows/steps/loadItem.ts
-import { db, sql } from "worldant"
+import { pgpaw } from "worldant"
 
 export default async function loadItem(input: { id: number }) {
-  return db.one<{ id: number; title: string; done: boolean }>(sql`
-    select id, title, done from todo_items where id = ${input.id}
-  `)
+  const reply = await pgpaw.sql<{ id: number; title: string; done: boolean }>(
+    "select id, title, done from todo_items where id = $1",
+    [input.id],
+  )
+  return reply.rows[0]
 }
 ```
 
@@ -146,13 +149,13 @@ Worldant does not generate or validate JWTs. If a project wants JWT auth, the pr
 token before trusting it. RLS can read a trusted header or call SQL functions that interpret the
 token in `request.headers`.
 
-`sql` template values bind as JSON parameters, not typed Postgres values:
+Parameters bind as JSON values against the statement's described types:
 
-- uuid columns need an explicit cast on the parameter: `where id = ${input.id}::uuid`.
-- A JS array binds as jsonb, not a Postgres array; `= any(${arr})` fails. Unnest instead:
-  `where id in (select jsonb_array_elements_text(${input.ids})::uuid)`.
-- `db.one` rejects on zero rows; it never resolves `null`. Use `db.many` and check the length when
-  absence is a normal outcome.
+- Non-JSON types need a text cast on the parameter: `where id = ($1::text)::uuid`.
+- A JS array binds as jsonb, not a Postgres array; `= any($1)` fails. Unnest instead:
+  `where id in (select jsonb_array_elements_text($1)::uuid)`.
+- Absence is an empty `rows` array; check `reply.rows.length`, and alias duplicate output columns
+  to unique names.
 
 ## AI Integration Checklist
 

@@ -1,17 +1,15 @@
 ---
 title: Command transactions
-description: Standalone Command commits, explicit transactions, and Step transactions.
+description: Independent per-statement commits and the fenced Step transition.
 ---
 
-Commands have no implicit handler-wide transaction. Each standalone database operation commits
-before its promise resolves or rolls back on failure.
+Commands have no implicit handler-wide transaction. Every `pgpaw.sql` call is one statement in
+its own transaction: it commits before its promise resolves or rolls back on failure. Interactive
+multi-statement transactions are unsupported on the wire, so an atomic group belongs in one SQL
+statement (a data-modifying CTE) or behind idempotent mutations.
 
-Use `db.transaction(callback)` for an explicit Command transaction. Only calls through the callback
-`tx` handle join that transaction.
-
-Steps are different. A Step has one kernel-owned transaction for database effects plus durable
-completion. Application-authored `db.transaction` is unavailable inside Steps.
-
-This keeps immediate Command effects explicit while preserving exactly-once database effects for
-committed Step boundaries.
-
+Steps are different only on the kernel side. A Step's output, emitted signals, scheduling, and
+job disposition commit atomically as one fenced durable transition — but its application SQL
+commits independently through `pgpaw.sql` like a Command's. A retried Step may re-issue committed
+application writes; make them idempotent. On replay, a committed Step returns its stored output
+without repeating kernel effects.

@@ -56,26 +56,29 @@ const output = await run.handle
 Commands import supported capabilities from `worldant`:
 
 ```ts
-import { db, sql } from "worldant"
+import { pgpaw } from "worldant"
 
 export default async function add(input) {
-  return db.one(sql`
-    insert into todo_items (title)
-    values (${input.title})
-    returning id, title, done, created_at
-  `)
+  const reply = await pgpaw.sql(
+    "insert into todo_items (title) values ($1) returning id, title, done, created_at",
+    [input.title],
+  )
+  return reply.rows[0]
 }
 ```
 
-Standalone Command `db.one`, `db.many`, and `db.exec` calls commit independently. Use
-`db.transaction(async (tx) => ...)` when several Command database effects must commit together.
+`pgpaw.sql(text, params)` executes exactly one parameterized statement on the PgPaw data node and
+answers `{ command, rows, rowsAffected }`. Every call commits independently; there is no
+handler-wide or multi-statement transaction. Group effects that must commit together into one SQL
+statement (a data-modifying CTE) or make the mutations idempotent.
 
 Workflow bodies orchestrate deterministic work. They call Steps, child Workflows, and durable wait
 primitives. They do not directly access database, network, filesystem, ambient timers, randomness,
 or other nondeterministic APIs.
 
-Steps perform supported IO for Workflows. Step database effects and durable completion share one
-kernel-owned transaction. `db.transaction` is unavailable in Steps.
+Steps perform supported IO for Workflows. Step output and durable completion commit atomically in
+the private kernel transition, but application SQL commits independently — a retried Step may
+re-issue committed writes, so mutations must be idempotent.
 
 ## Database Configuration
 
@@ -150,8 +153,8 @@ and `ownerHeader`; application-table RLS belongs in app migrations.
 - Do not put nondeterministic IO in a Workflow body.
 - Do not treat middleware context as SQL identity; SQL sees original request headers.
 - Do not hard-code deployment URLs into generated packages or declarations.
-- Do not compare uuid columns to uncast parameters; write `${input.id}::uuid`.
-- Do not use `= any(${arr})` on a JS array; it binds as jsonb — unnest with
-  `jsonb_array_elements_text(${arr})`.
-- Do not expect `db.one` to resolve `null` on zero rows; it rejects. Use `db.many` when absence is
-  a normal outcome.
+- Do not bind non-JSON types directly; bind text and cast, e.g. `($1::text)::uuid`.
+- Do not use `= any($1)` on a JS array; it binds as jsonb — unnest with
+  `jsonb_array_elements_text($1)`.
+- Do not expect a row when `rows` is empty; check `reply.rows.length` when absence is a normal
+  outcome, and alias duplicate output columns to unique names.
