@@ -1,9 +1,10 @@
-import { db, sql } from "worldant"
+import { pgpaw } from "worldant"
 
-export default async function add(input: { title: string }) {
-  return db.one(sql`
-    insert into todo_items (title)
-    values (${input.title})
-    returning id, title, done, created_at
-  `)
+async function add(input: { title: string }) {
+  "worldant::command"
+  const reply = await pgpaw.sql(
+    "insert into todo_items (title) values ($1) returning id, title, done, created_at",
+    [input.title],
+  )
+  return reply.rows[0]
 }

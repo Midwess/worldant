@@ -34,17 +34,18 @@ Steps are internal Workflow IO checkpoints. Step output, emitted signals, schedu
 disposition commit atomically in the private fenced kernel transition; application SQL commits
 independently and must be idempotent across retries.
 
-A Workflow default-imports its Steps by relative path and awaits them like plain functions. Named
-Step imports are rejected at build time. Workflows may only import `sleep` and `waitForEvent` from
-`worldant`; database access belongs in Steps:
+A Workflow imports Steps by their authored bindings and awaits them as durable checkpoints.
+Workflows may only import deterministic orchestration capabilities from `worldant`; database access
+belongs in Steps:
 
 ```ts
 // workflows/remind.ts
 import { sleep } from "worldant"
-import loadItem from "./steps/loadItem.ts"
-import sendReminder from "./steps/sendReminder.ts"
+import { loadItem } from "./steps/loadItem.ts"
+import { sendReminder } from "./steps/sendReminder.ts"
 
-export default async function remind(input: { id: number; delayMs: number }) {
+async function remind(input: { id: number; delayMs: number }) {
+  "worldant::workflow"
   await sleep(input.delayMs)
   const item = await loadItem({ id: input.id })
   if (item.done) return { reminded: false }
@@ -56,7 +57,8 @@ export default async function remind(input: { id: number; delayMs: number }) {
 // workflows/steps/loadItem.ts
 import { pgpaw } from "worldant"
 
-export default async function loadItem(input: { id: number }) {
+async function loadItem(input: { id: number }) {
+  "worldant::step"
   const reply = await pgpaw.sql<{ id: number; title: string; done: boolean }>(
     "select id, title, done from todo_items where id = $1",
     [input.id],
@@ -69,7 +71,8 @@ export default async function loadItem(input: { id: number }) {
 // workflows/steps/sendReminder.ts
 import { emit } from "worldant"
 
-export default async function sendReminder(input: { id: number; title: string }) {
+async function sendReminder(input: { id: number; title: string }) {
+  "worldant::step"
   await emit("reminder", { id: input.id, title: input.title })
   return { reminded: true }
 }

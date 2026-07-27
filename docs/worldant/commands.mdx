@@ -3,13 +3,14 @@ title: Commands
 description: Immediate Worldant functions for reads, writes, and computation.
 ---
 
-A Command is a default-exported TypeScript function under `commands/` or
-`apps/<app>/commands/`.
+A Command is a stably named function carrying `"worldant::command"` or the equivalent
+`defineCommand()` wrapper. Exporting the authored binding is optional.
 
 ```ts
 import { pgpaw } from "worldant"
 
-export default async function open(input) {
+async function open(input) {
+  "worldant::command"
   const reply = await pgpaw.sql(
     "select * from todo_items where done = false order by id",
   )

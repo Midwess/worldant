@@ -13,15 +13,21 @@ Human docs:
 
 Current Worldant model:
 
-- Command: immediate, non-durable application function under `commands/`.
-- Workflow: durable deterministic orchestration under `workflows/`.
-- Step: internal Workflow IO checkpoint under `workflows/steps/`, never public.
+- Command: immediate, non-durable application function declared by `"worldant::command"` or
+  `defineCommand()`.
+- Workflow: non-callable reference to durable deterministic orchestration declared by
+  `"worldant::workflow"` or `defineWorkflow()` and started only with `start()`.
+- Step: internal Workflow IO checkpoint declared by `"worldant::step"` or `defineStep()`, callable
+  only during Workflow replay and never public.
 
 Rules:
 
 - Do not create `queries/`, `mutations/`, `reactive/`, `goals.ts`, generic Actions, or public Step
   APIs.
 - Commands import supported capabilities from `worldant`.
+- Authored exports and directories are organizational; namespace plus top-level binding defines an
+  artifact identity.
+- Every public caller uses its configured transport. There is no same-process Workflow shortcut.
 - Standalone Command database calls commit independently. Use `db.transaction(async (tx) => ...)`
   when multiple Command database effects must commit together.
 - Workflow bodies must stay deterministic. Put database and other supported IO in Steps.

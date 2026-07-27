@@ -1,7 +1,10 @@
-import { db, sql } from "worldant"
+import { pgpaw } from "worldant"
 
-export default async function loadItem(input: { id: number }) {
-  return db.one<{ id: number; title: string; done: boolean }>(sql`
-    select id, title, done from todo_items where id = ${input.id}
-  `)
+async function loadItem(input: { id: number }) {
+  "worldant::step"
+  const reply = await pgpaw.sql<{ id: number; title: string; done: boolean }>(
+    "select id, title, done from todo_items where id = $1",
+    [input.id],
+  )
+  return reply.rows[0]
 }

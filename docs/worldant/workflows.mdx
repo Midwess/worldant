@@ -3,15 +3,15 @@ title: Workflows
 description: Durable deterministic orchestration and internal Step checkpoints.
 ---
 
-A Workflow is a default-exported async TypeScript function under `workflows/` or
-`apps/<app>/workflows/`.
+A Workflow is a stably named async function carrying the `"worldant::workflow"` directive or the
+equivalent `defineWorkflow()` wrapper. Exporting the authored binding is optional.
 
-Workflow bodies are deterministic orchestration. They may call Steps, call child Workflows, branch
-on recorded values, and use durable wait primitives. They may not directly access databases,
+Workflow bodies are deterministic orchestration. They may call Steps, start independent Workflows,
+branch on recorded values, and use durable wait primitives. They may not directly access databases,
 network, filesystem, ambient timers, randomness, or other nondeterministic capabilities.
 
-Steps live under `workflows/steps/` or `apps/<app>/workflows/steps/`. They are internal Workflow IO
-checkpoints and are never public callables.
+Steps carry `"worldant::step"` or `defineStep()`. They are internal Workflow IO checkpoints and are
+never public callables.
 
 Step output, emitted signals, transaction-bound Workflow scheduling, and job disposition commit
 atomically as one fenced kernel transition. Application SQL through `pgpaw.sql` commits
@@ -19,16 +19,16 @@ independently and must be idempotent across Step retries.
 
 ## Authoring a Workflow with Steps
 
-A Workflow default-imports its Steps by relative path and awaits them like plain functions. Named
-Step imports are rejected at build time — a Step is its file's default export.
+A Workflow imports Steps by their authored binding and awaits them as durable checkpoints.
 
 ```ts
 // workflows/remind.ts
 import { sleep } from "worldant"
-import loadItem from "./steps/loadItem.ts"
-import sendReminder from "./steps/sendReminder.ts"
+import { loadItem } from "./steps/loadItem.ts"
+import { sendReminder } from "./steps/sendReminder.ts"
 
-export default async function remind(input: { id: number; delayMs: number }) {
+async function remind(input: { id: number; delayMs: number }) {
+  "worldant::workflow"
   await sleep(input.delayMs)
   const item = await loadItem({ id: input.id })
   if (item.done) return { reminded: false }
@@ -44,7 +44,8 @@ and branching on `item.done` replays from the recorded Step output. Workflows ma
 // workflows/steps/loadItem.ts
 import { pgpaw } from "worldant"
 
-export default async function loadItem(input: { id: number }) {
+async function loadItem(input: { id: number }) {
+  "worldant::step"
   const reply = await pgpaw.sql<{ id: number; title: string; done: boolean }>(
     "select id, title, done from todo_items where id = $1",
     [input.id],
@@ -57,7 +58,8 @@ export default async function loadItem(input: { id: number }) {
 // workflows/steps/sendReminder.ts
 import { emit } from "worldant"
 
-export default async function sendReminder(input: { id: number; title: string }) {
+async function sendReminder(input: { id: number; title: string }) {
+  "worldant::step"
   await emit("reminder", { id: input.id, title: input.title })
   return { reminded: true }
 }
@@ -68,10 +70,9 @@ The runtime prefixes the app onto emitted kinds: `emit("reminder")` in app `todo
 
 On replay a committed Step returns its stored output without repeating database effects.
 
-Client usage uses two awaits:
+Client usage dispatches the Workflow reference explicitly:
 
 ```ts
-const run = await world.todo.remind(input)
-const output = await run.handle
+const run = await start(world.todo.remind, input)
+const output = await run.result
 ```
-

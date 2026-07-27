@@ -32,7 +32,7 @@ public Step APIs.
 Use the generic client handle:
 
 ```ts
-import { createWorld } from "worldant-client"
+import { createWorld, start } from "worldant-client"
 
 const world = createWorld({ url: "ws://127.0.0.1:8787/__worldant/v1/ws" })
 const result = await world.todo.add({ title: "Buy milk" })
@@ -44,11 +44,11 @@ Commands return one result immediately. Use an idempotency key when retrying a w
 await world.todo.add(input, { key: "todo:add:buy-milk" })
 ```
 
-Workflows need two awaits:
+Workflows are references and cannot be called directly:
 
 ```ts
-const run = await world.todo.remind(input)
-const output = await run.handle
+const run = await start(world.todo.remind, input)
+const output = await run.result
 ```
 
 ## Authoring
@@ -58,7 +58,8 @@ Commands import supported capabilities from `worldant`:
 ```ts
 import { pgpaw } from "worldant"
 
-export default async function add(input) {
+async function add(input) {
+  "worldant::command"
   const reply = await pgpaw.sql(
     "insert into todo_items (title) values ($1) returning id, title, done, created_at",
     [input.title],
