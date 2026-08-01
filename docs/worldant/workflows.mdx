@@ -14,8 +14,9 @@ Steps carry `"worldant::step"` or `defineStep()`. They are internal Workflow IO 
 never public callables.
 
 Step output, emitted signals, transaction-bound Workflow scheduling, and job disposition commit
-atomically as one fenced kernel transition. Application SQL through `pgpaw.sql` commits
-independently and must be idempotent across Step retries.
+atomically as one fenced kernel transition. Application SQL through
+`session.request("pgpaw.sql", { sql, params })` commits independently and must be idempotent
+across Step retries.
 
 ## Authoring a Workflow with Steps
 
@@ -42,14 +43,16 @@ and branching on `item.done` replays from the recorded Step output. Workflows ma
 
 ```ts
 // workflows/steps/loadItem.ts
-import { pgpaw } from "worldant"
+import { session } from "worldant-client"
+
+type SqlReply<Row> = { command: string; rows: Row[]; rowsAffected: number }
 
 async function loadItem(input: { id: number }) {
   "worldant::step"
-  const reply = await pgpaw.sql<{ id: number; title: string; done: boolean }>(
-    "select id, title, done from todo_items where id = $1",
-    [input.id],
-  )
+  const reply = (await session.request("pgpaw.sql", {
+    sql: "select id, title, done from todo_items where id = $1",
+    params: [input.id],
+  })) as SqlReply<{ id: number; title: string; done: boolean }>
   return reply.rows[0]
 }
 ```

@@ -28,23 +28,27 @@ depending on the prior schema has retired.
 
 ## The client
 
-Commands and Steps use the stable handwritten client bound by the activation:
+Commands and Steps reach application data by subject over the activation-bound session:
 
 ```ts
-import { pgpaw } from "worldant"
+import { session } from "worldant-client"
 
-const reply = await pgpaw.sql<{ id: string }>(
-  "select id from toys where owner = $1",
-  [input.owner],
-)
+type SqlReply<Row> = { command: string; rows: Row[]; rowsAffected: number }
+
+const reply = (await session.request("pgpaw.sql", {
+  sql: "select id from toys where owner = $1",
+  params: [input.owner],
+})) as SqlReply<{ id: string }>
 // reply = { command: "SELECT", rows: [...], rowsAffected: 0 }
 ```
 
-`pgpaw.sql` executes exactly one parameterized statement and always answers
-`{ command, rows, rowsAffected }`; you supply the row type. Each call commits independently —
-there is no handler-wide or multi-statement transaction, and a retried Step may re-issue a
-committed write, so mutations must be idempotent. Row-returning SQL must expose unique output
-column names. Realtime-safe live reads are served by the PgPaw node's own `pgpaw.live` root.
+`session.request("pgpaw.sql", { sql, params })` executes exactly one parameterized statement and
+always answers `{ command, rows, rowsAffected }`; you supply the row type. Each call commits
+independently — there is no handler-wide or multi-statement transaction, and a retried Step may
+re-issue a committed write, so mutations must be idempotent. Row-returning SQL must expose unique
+output column names. Realtime-safe live reads are served by the PgPaw node's own `pgpaw.live`
+root; `session.subscribe` throws inside an activation, so `pgpaw.live` is a client-session
+subscription.
 
 ## Parameter binding
 
@@ -53,17 +57,20 @@ Parameters bind as JSON values against the statement's described types. Three co
 **Types outside the JSON families need a text cast.** Bind the value as text and cast in SQL:
 
 ```ts
-await pgpaw.sql("select * from toys where id = ($1::text)::uuid", [input.id])
+await session.request("pgpaw.sql", {
+  sql: "select * from toys where id = ($1::text)::uuid",
+  params: [input.id],
+})
 ```
 
 **A JS array binds as jsonb, not a Postgres array.** `= any($1)` fails. Unnest the jsonb value
 instead:
 
 ```ts
-await pgpaw.sql(
-  "select * from toys where id in (select jsonb_array_elements_text($1)::uuid)",
-  [input.ids],
-)
+await session.request("pgpaw.sql", {
+  sql: "select * from toys where id in (select jsonb_array_elements_text($1)::uuid)",
+  params: [input.ids],
+})
 ```
 
 **Absence is an empty `rows` array.** Check `reply.rows.length` when zero rows is a normal
@@ -75,7 +82,9 @@ Worldant does not define users, JWTs, claims, tenants, or token validation. Appl
 their own authentication and authorization model.
 
 Application SQL executes under the fixed neutral `pgpaw_public` role (`NOLOGIN`, `NOBYPASSRLS`).
-For served requests, the activation's preserved headers reach SQL as transaction-local JSON:
+The activation's ingress headers are projected onto every outgoing request, so
+row-level-security policies keyed on `request.headers` hold across the wire. For served
+requests, the activation's preserved headers reach SQL as transaction-local JSON:
 
 ```sql
 current_setting('request.headers', true)::jsonb

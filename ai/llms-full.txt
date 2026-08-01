@@ -23,8 +23,10 @@ apps/todo/commands/add.ts               -> Command todo.add
 
 ## Runtime Boundaries
 
-Commands are immediate and non-durable. Application SQL goes through `pgpaw.sql(text, params)`,
-which executes exactly one parameterized statement and answers `{ command, rows, rowsAffected }`.
+Commands are immediate and non-durable. Application SQL goes by subject over the activation-bound
+session: `session.request("pgpaw.sql", { sql, params })` (import `session` from
+`worldant-client`) executes exactly one parameterized statement and answers
+`{ command, rows, rowsAffected }`.
 Every call commits independently; there is no handler-wide or multi-statement transaction.
 
 Workflows are durable deterministic orchestration. They replay from the top against a PostgreSQL
@@ -55,14 +57,16 @@ async function remind(input: { id: number; delayMs: number }) {
 
 ```ts
 // workflows/steps/loadItem.ts
-import { pgpaw } from "worldant"
+import { session } from "worldant-client"
+
+type SqlReply<Row> = { command: string; rows: Row[]; rowsAffected: number }
 
 async function loadItem(input: { id: number }) {
   "worldant::step"
-  const reply = await pgpaw.sql<{ id: number; title: string; done: boolean }>(
-    "select id, title, done from todo_items where id = $1",
-    [input.id],
-  )
+  const reply = (await session.request("pgpaw.sql", {
+    sql: "select id, title, done from todo_items where id = $1",
+    params: [input.id],
+  })) as SqlReply<{ id: number; title: string; done: boolean }>
   return reply.rows[0]
 }
 ```

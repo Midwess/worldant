@@ -3,13 +3,14 @@ title: Command transactions
 description: Independent per-statement commits and the fenced Step transition.
 ---
 
-Commands have no implicit handler-wide transaction. Every `pgpaw.sql` call is one statement in
-its own transaction: it commits before its promise resolves or rolls back on failure. Interactive
+Commands have no implicit handler-wide transaction. Every `session.request("pgpaw.sql", { sql, params })`
+call is one statement in its own transaction: it commits before its promise resolves or rolls
+back on failure. Interactive
 multi-statement transactions are unsupported on the wire, so an atomic group belongs in one SQL
 statement (a data-modifying CTE) or behind idempotent mutations.
 
 Steps are different only on the kernel side. A Step's output, emitted signals, scheduling, and
 job disposition commit atomically as one fenced durable transition — but its application SQL
-commits independently through `pgpaw.sql` like a Command's. A retried Step may re-issue committed
+commits independently through `session.request("pgpaw.sql", …)` like a Command's. A retried Step may re-issue committed
 application writes; make them idempotent. On replay, a committed Step returns its stored output
 without repeating kernel effects.

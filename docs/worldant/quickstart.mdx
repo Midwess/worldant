@@ -41,14 +41,14 @@ create table todo_items (
 Add a Command under `commands/add.ts`:
 
 ```ts
-import { pgpaw } from "worldant"
+import { session } from "worldant-client"
 
 async function add(input: { title: string }) {
   "worldant::command"
-  const reply = await pgpaw.sql(
-    "insert into todo_items (title) values ($1) returning id, title, done, created_at",
-    [input.title],
-  )
+  const reply = await session.request("pgpaw.sql", {
+    sql: "insert into todo_items (title) values ($1) returning id, title, done, created_at",
+    params: [input.title],
+  })
   return reply.rows[0]
 }
 ```

@@ -7,24 +7,25 @@ A Command is a stably named function carrying `"worldant::command"` or the equiv
 `defineCommand()` wrapper. Exporting the authored binding is optional.
 
 ```ts
-import { pgpaw } from "worldant"
+import { session } from "worldant-client"
 
 async function open(input) {
   "worldant::command"
-  const reply = await pgpaw.sql(
-    "select * from todo_items where done = false order by id",
-  )
+  const reply = await session.request("pgpaw.sql", {
+    sql: "select * from todo_items where done = false order by id",
+  })
   return reply.rows
 }
 ```
 
-Commands do not receive a context argument. They import supported capabilities from `worldant`.
+Commands do not receive a context argument. They import supported capabilities from `worldant`,
+and reach application data through the activation-bound `session` from `worldant-client`.
 
-`pgpaw.sql` executes exactly one parameterized statement on the PgPaw data node and answers
-`{ command, rows, rowsAffected }`. Each call commits independently: if the Command later throws,
-earlier commits remain committed. There is no handler-wide or multi-statement transaction
-surface — group effects that must commit together into one SQL statement (a CTE), or make the
-mutations idempotent.
+`session.request("pgpaw.sql", { sql, params })` executes exactly one parameterized statement on
+the PgPaw data node and answers `{ command, rows, rowsAffected }`. Each call commits
+independently: if the Command later throws, earlier commits remain committed. There is no
+handler-wide or multi-statement transaction surface — group effects that must commit together
+into one SQL statement (a CTE), or make the mutations idempotent.
 
 Parameters bind as JSON against described types: cast non-JSON types via text
 (`($1::text)::uuid`), unnest JS arrays with `jsonb_array_elements_text($1)`, and check

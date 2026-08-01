@@ -53,25 +53,29 @@ const output = await run.result
 
 ## Authoring
 
-Commands import supported capabilities from `worldant`:
+Commands import runtime capabilities from `worldant` and reach application data by subject over
+the activation-bound session from `worldant-client`:
 
 ```ts
-import { pgpaw } from "worldant"
+import { session } from "worldant-client"
 
 async function add(input) {
   "worldant::command"
-  const reply = await pgpaw.sql(
-    "insert into todo_items (title) values ($1) returning id, title, done, created_at",
-    [input.title],
-  )
+  const reply = await session.request("pgpaw.sql", {
+    sql: "insert into todo_items (title) values ($1) returning id, title, done, created_at",
+    params: [input.title],
+  })
   return reply.rows[0]
 }
 ```
 
-`pgpaw.sql(text, params)` executes exactly one parameterized statement on the PgPaw data node and
-answers `{ command, rows, rowsAffected }`. Every call commits independently; there is no
-handler-wide or multi-statement transaction. Group effects that must commit together into one SQL
-statement (a data-modifying CTE) or make the mutations idempotent.
+`session.request("pgpaw.sql", { sql, params })` executes exactly one parameterized statement on the
+PgPaw data node and answers `{ command, rows, rowsAffected }`; applications supply their own row
+types. Every call commits independently; there is no handler-wide or multi-statement transaction.
+Group effects that must commit together into one SQL statement (a data-modifying CTE) or make the
+mutations idempotent. The activation's ingress headers are projected onto every outgoing request,
+so RLS policies keyed on `request.headers` hold across the wire. `session.subscribe` throws inside
+an activation; realtime is a client-session subscription to `pgpaw.live`.
 
 Workflow bodies orchestrate deterministic work. They call Steps, child Workflows, and durable wait
 primitives. They do not directly access database, network, filesystem, ambient timers, randomness,
@@ -110,8 +114,8 @@ database component selects the remote database. Do not use top-level `dsn`, `dat
 In builtin mode, PgPaw owns the one embedded primary. Worldant obtains its DSN through PgPaw's public
 API and opens a direct SQLx PostgreSQL pool for all application and kernel database work. A
 listenerless PgPaw child separately joins the Worldant node over a private Unix socket and registers
-read-only `pgpaw.read`, `pgpaw.cursor`, and `pgpaw.live` services. This child is additive: database
-writes never traverse the wire protocol, and there is no replica or public PgPaw listener.
+the `pgpaw.sql` and `pgpaw.live` services — the application data path activations and clients reach
+by subject. There is no replica or public PgPaw listener; the kernel keeps its direct pool.
 
 Serve completes private child establishment and route synchronization before public Worldant
 hosting, starts Workflow workers after public binding succeeds, and reports readiness last.
