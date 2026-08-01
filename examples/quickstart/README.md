@@ -16,12 +16,15 @@ worldant init todo
 cd todo
 ```
 
-This folder shows the same Command and migration shape that an initialized world can use.
+This folder is the Worldant source root. Its application schema lives separately in
+`../quickstart-pgpaw`.
 
 ## 3. Build and serve
 
 ```bash
 worldant build
+pgpaw migrate --source ../quickstart-pgpaw --namespace todo \
+  --data-dir .worldant/data --database postgres
 worldant serve
 ```
 
