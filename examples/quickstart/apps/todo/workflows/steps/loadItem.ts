@@ -1,4 +1,4 @@
-import { session } from "worldant-client"
+import { session } from "worldant/client"
 
 type SqlReply<Row> = { command: string; rows: Row[]; rowsAffected: number }
 

@@ -25,7 +25,7 @@ apps/todo/commands/add.ts               -> Command todo.add
 
 Commands are immediate and non-durable. Application SQL goes by subject over the activation-bound
 session: `session.request("pgpaw.sql", { sql, params })` (import `session` from
-`worldant-client`) executes exactly one parameterized statement and answers
+`worldant/client`) executes exactly one parameterized statement and answers
 `{ command, rows, rowsAffected }`.
 Every call commits independently; there is no handler-wide or multi-statement transaction.
 
@@ -57,7 +57,7 @@ async function remind(input: { id: number; delayMs: number }) {
 
 ```ts
 // workflows/steps/loadItem.ts
-import { session } from "worldant-client"
+import { session } from "worldant/client"
 
 type SqlReply<Row> = { command: string; rows: Row[]; rowsAffected: number }
 
@@ -170,7 +170,7 @@ When integrating a running world:
 
 1. Fetch `/__worldant/v1/llms.txt`.
 2. Fetch `/__worldant/v1/knowledge/<app>.d.ts` for exact callable types.
-3. Use `createWorld()` from `worldant-client`.
+3. Use `createWorld()` from `worldant/client`.
 4. Call Commands through `world.<app>.<command>()`.
 5. Run Workflows with two awaits.
 6. Respect app RLS and pass the required headers.

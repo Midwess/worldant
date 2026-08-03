@@ -41,7 +41,7 @@ create table todo_items (
 Add a Command under `commands/add.ts`:
 
 ```ts
-import { session } from "worldant-client"
+import { session } from "worldant/client"
 
 async function add(input: { title: string }) {
   "worldant::command"
@@ -66,7 +66,7 @@ from that snapshot, and binds every enabled transport before reporting readiness
 Call it:
 
 ```ts
-import { createWorld } from "worldant-client"
+import { createWorld } from "worldant/client"
 
 const world = createWorld({ url: "ws://127.0.0.1:8787/__worldant/v1/ws" })
 const todo = await world.todo.add({ title: "Buy milk" }, { key: "todo:add:buy-milk" })

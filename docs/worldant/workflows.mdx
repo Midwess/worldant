@@ -43,7 +43,7 @@ and branching on `item.done` replays from the recorded Step output. Workflows ma
 
 ```ts
 // workflows/steps/loadItem.ts
-import { session } from "worldant-client"
+import { session } from "worldant/client"
 
 type SqlReply<Row> = { command: string; rows: Row[]; rowsAffected: number }
 

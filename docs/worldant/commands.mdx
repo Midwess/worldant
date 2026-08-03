@@ -7,7 +7,7 @@ A Command is a stably named function carrying `"worldant::command"` or the equiv
 `defineCommand()` wrapper. Exporting the authored binding is optional.
 
 ```ts
-import { session } from "worldant-client"
+import { session } from "worldant/client"
 
 async function open(input) {
   "worldant::command"
@@ -19,7 +19,7 @@ async function open(input) {
 ```
 
 Commands do not receive a context argument. They import supported capabilities from `worldant`,
-and reach application data through the activation-bound `session` from `worldant-client`.
+and reach application data through the activation-bound `session` from `worldant/client`.
 
 `session.request("pgpaw.sql", { sql, params })` executes exactly one parameterized statement on
 the PgPaw data node and answers `{ command, rows, rowsAffected }`. Each call commits

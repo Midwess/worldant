@@ -38,7 +38,7 @@ public Step APIs.
 Use the generic client handle:
 
 ```ts
-import { createWorld, start } from "worldant-client"
+import { createWorld, start } from "worldant/client"
 
 const world = createWorld({ url: "ws://127.0.0.1:8787/__worldant/v1/ws" })
 const result = await world.todo.add({ title: "Buy milk" })
@@ -60,10 +60,10 @@ const output = await run.result
 ## Authoring
 
 Commands import runtime capabilities from `worldant` and reach application data by subject over
-the activation-bound session from `worldant-client`:
+the activation-bound session from `worldant/client`:
 
 ```ts
-import { session } from "worldant-client"
+import { session } from "worldant/client"
 
 async function add(input) {
   "worldant::command"

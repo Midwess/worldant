@@ -31,7 +31,7 @@ depending on the prior schema has retired.
 Commands and Steps reach application data by subject over the activation-bound session:
 
 ```ts
-import { session } from "worldant-client"
+import { session } from "worldant/client"
 
 type SqlReply<Row> = { command: string; rows: Row[]; rowsAffected: number }
 
