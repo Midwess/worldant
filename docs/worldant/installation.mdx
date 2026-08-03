@@ -13,7 +13,9 @@ worldant --version
 The package installs a verified release binary together with the native TypeScript checker bundle
 for that target. Release and checker manifests pin and verify the executable, TypeScript-Go commit,
 Go toolchain, diagnostic protocol/policy, standard declarations, licenses, and SHA-256 digests.
-Worldant never searches `PATH`, Node, npm, or the network for a checker at authoring time.
+The bundle also pins the matching Bun/Node host declarations and verifies their complete
+content-addressed inventory before use. Worldant never searches `PATH`, Node, npm, or the network
+for a checker at authoring time.
 
 Use:
 

@@ -13,6 +13,12 @@ artifact. Browser authoring performs the same acceptance check for mounted prese
 receiver-owned Command roots in its compiler worker after exact package declarations are prepared.
 The checker cannot emit code, alter catalogs, or contribute compiler facts.
 
+Native checker bundles include the pinned Bun/Node declaration graph used by the embedded runtime,
+so acceptance validation preserves supported `node:` and `bun:` imports. Browser package graphs
+carry complete explicit runtime relationships and matching declaration relationships.
+Both checker loaders recompute exact declaration inventories against compiled pins before checking;
+a rewritten manifest cannot silently remove part of the type environment.
+
 A definite semantic error blocks the candidate before staging or browser activation. Missing,
 corrupt, crashed, or timed-out checker execution also blocks explicitly; native authoring never
 falls back to an unchecked snapshot, and browser authoring retains its previous active generation
