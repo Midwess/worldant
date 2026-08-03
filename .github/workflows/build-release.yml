@@ -41,14 +41,25 @@ jobs:
           - runner: macos-14
             target: aarch64-apple-darwin
             key: darwin-arm64
+            go-archive: darwin-arm64
+            checker-binary: worldant-tscheck-darwin-arm64
           - runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             key: linux-x64
+            go-archive: linux-amd64
+            checker-binary: worldant-tscheck-linux-amd64
           - runner: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
             key: linux-arm64
+            go-archive: linux-arm64
+            checker-binary: worldant-tscheck-linux-arm64
     runs-on: ${{ matrix.runner }}
     steps:
+      - name: Check out public release tooling
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          path: public
+
       - name: Check out private release source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -77,6 +88,94 @@ jobs:
             [ "$sub" = "docs" ] && continue
             git -C PgPaw submodule update --init --recursive "$sub"
           done
+
+      - name: Read and validate the checker pin
+        id: checker
+        env:
+          GO_ARCHIVE_KEY: ${{ matrix.go-archive }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const { appendFileSync, readFileSync } = require("node:fs")
+          const pin = JSON.parse(readFileSync("source/tools/typescript-checker/pin.json", "utf8"))
+          const fail = (message) => { throw new Error(message) }
+          if (pin.schema !== "worldant.typescript-checker-pin.v1") fail("unsupported checker pin schema")
+          if (pin.typescript_go?.repository !== "https://github.com/microsoft/typescript-go.git") fail("unexpected TypeScript-Go repository")
+          if (!/^[0-9a-f]{40}$/.test(pin.typescript_go?.commit ?? "")) fail("invalid TypeScript-Go commit")
+          if (!/^\d+\.\d+\.\d+$/.test(pin.go?.version ?? "")) fail("invalid Go version")
+          const archive = pin.go?.archives?.[process.env.GO_ARCHIVE_KEY]
+          if (!archive || !/^go\d+\.\d+\.\d+\.[a-z0-9-]+\.tar\.gz$/.test(archive.file) || !/^[0-9a-f]{64}$/.test(archive.sha256)) fail("invalid Go archive pin")
+          if (!/^\d+\.\d+\.\d+$/.test(pin.native_platform_types?.["@types/node"] ?? "")) fail("invalid @types/node pin")
+          if (!/^\d+\.\d+\.\d+$/.test(pin.native_platform_types?.["undici-types"] ?? "")) fail("invalid undici-types pin")
+          if (!/^[0-9a-f]{40}$/.test(pin.native_platform_types?.bun_repository_commit ?? "")) fail("invalid Bun types commit")
+          const outputs = {
+            typescript_go_commit: pin.typescript_go.commit,
+            go_version: pin.go.version,
+            go_archive_file: archive.file,
+            go_archive_sha256: archive.sha256,
+            node_types_version: pin.native_platform_types["@types/node"],
+            undici_types_version: pin.native_platform_types["undici-types"],
+            bun_types_commit: pin.native_platform_types.bun_repository_commit,
+          }
+          appendFileSync(process.env.GITHUB_OUTPUT, Object.entries(outputs).map(([key, value]) => `${key}=${value}\n`).join(""))
+          NODE
+
+      - name: Install pinned Go toolchain
+        env:
+          GO_ARCHIVE_FILE: ${{ steps.checker.outputs.go_archive_file }}
+          GO_ARCHIVE_SHA256: ${{ steps.checker.outputs.go_archive_sha256 }}
+        run: |
+          set -euo pipefail
+          mkdir -p checker-toolchain
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            "https://go.dev/dl/$GO_ARCHIVE_FILE" \
+            --output "checker-toolchain/$GO_ARCHIVE_FILE"
+          printf '%s  %s\n' "$GO_ARCHIVE_SHA256" "checker-toolchain/$GO_ARCHIVE_FILE" | shasum -a 256 --check
+          tar -C checker-toolchain -xzf "checker-toolchain/$GO_ARCHIVE_FILE"
+          go_platform='${{ matrix.go-archive }}'
+          go_platform="${go_platform/-//}"
+          test "$(checker-toolchain/go/bin/go version)" = "go version go${{ steps.checker.outputs.go_version }} $go_platform"
+
+      - name: Prepare pinned checker sources and declarations
+        env:
+          TYPESCRIPT_GO_COMMIT: ${{ steps.checker.outputs.typescript_go_commit }}
+          NODE_TYPES_VERSION: ${{ steps.checker.outputs.node_types_version }}
+          UNDICI_TYPES_VERSION: ${{ steps.checker.outputs.undici_types_version }}
+          BUN_TYPES_COMMIT: ${{ steps.checker.outputs.bun_types_commit }}
+        run: |
+          set -euo pipefail
+          mkdir -p checker-input/packages
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/microsoft/typescript-go.git checker-input/typescript-go
+          git -C checker-input/typescript-go checkout --detach "$TYPESCRIPT_GO_COMMIT"
+          test "$(git -C checker-input/typescript-go rev-parse HEAD)" = "$TYPESCRIPT_GO_COMMIT"
+          test "$(git -C source/vendor/bun rev-parse HEAD)" = "$BUN_TYPES_COMMIT"
+          node_pack="$(npm pack --silent --pack-destination checker-input/packages "@types/node@$NODE_TYPES_VERSION" | tail -n 1)"
+          undici_pack="$(npm pack --silent --pack-destination checker-input/packages "undici-types@$UNDICI_TYPES_VERSION" | tail -n 1)"
+          mkdir -p checker-input/node-types checker-input/undici-types
+          tar -C checker-input/node-types --strip-components=1 -xzf "checker-input/packages/$node_pack"
+          tar -C checker-input/undici-types --strip-components=1 -xzf "checker-input/packages/$undici_pack"
+
+      - name: Build and verify the pinned TypeScript checker bundle
+        env:
+          CHECKER_COMMIT: ${{ steps.checker.outputs.typescript_go_commit }}
+          CHECKER_BINARY: ${{ matrix.checker-binary }}
+          CHECKER_TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          source/tools/typescript-checker/build.sh \
+            "$GITHUB_WORKSPACE/checker-input/typescript-go" \
+            "$GITHUB_WORKSPACE/checker-toolchain/go/bin/go" \
+            "$GITHUB_WORKSPACE/checker-input/node-types" \
+            "$GITHUB_WORKSPACE/checker-input/undici-types" \
+            "$GITHUB_WORKSPACE/source/vendor/bun/packages/bun-types" \
+            "$GITHUB_WORKSPACE/source/tools/typescript-checker/release"
+          checker_root="source/tools/typescript-checker/release/libexec/worldant/typescript/$CHECKER_COMMIT"
+          test -x "$checker_root/$CHECKER_BINARY"
+          "$checker_root/$CHECKER_BINARY" \
+            < source/tools/typescript-checker/fixtures/semantic-error.json \
+            > checker-response.json
+          node -e 'const response = require("./checker-response.json"); if (response.protocol !== "worldant.typescript-checker.v1" || response.failure || !Array.isArray(response.diagnostics) || response.diagnostics.length === 0) throw new Error("checker smoke response is invalid")'
 
       - name: Install toolchain (macOS)
         if: runner.os == 'macOS'
@@ -139,12 +238,28 @@ jobs:
           rm -f Cargo.toml.bak
           cargo build --release --target "$TARGET" -p worldant-cli --bin worldant
 
+      - name: Compare native and browser TypeScript diagnostics
+        working-directory: source
+        env:
+          TARGET: ${{ matrix.target }}
+          CHECKER_COMMIT: ${{ steps.checker.outputs.typescript_go_commit }}
+          CHECKER_BINARY: ${{ matrix.checker-binary }}
+        run: |
+          set -euo pipefail
+          cargo build --release --target "$TARGET" -p world-compiler --example typescript_normalize
+          node tools/typescript-checker/conformance.mjs \
+            "target/$TARGET/release/examples/typescript_normalize" \
+            "tools/typescript-checker/release/libexec/worldant/typescript/$CHECKER_COMMIT/$CHECKER_BINARY" \
+            tools/typescript-checker/release/browser/wasm_exec.js \
+            tools/typescript-checker/release/browser/worldant-tscheck.wasm \
+            tools/typescript-checker/fixtures
+
       - name: Test the engine on this platform
         working-directory: source
         env:
           CARGO_INCREMENTAL: "0"
           TARGET: ${{ matrix.target }}
-        run: cargo test --release --target "$TARGET" -p world-host -p world-share -p world-build
+        run: cargo test --release --target "$TARGET" --workspace --exclude world-browser --exclude integration-test
 
       - name: Package binary
         shell: bash
@@ -152,12 +267,24 @@ jobs:
           VERSION: ${{ inputs.version }}
           KEY: ${{ matrix.key }}
           TARGET: ${{ matrix.target }}
+          CHECKER_COMMIT: ${{ steps.checker.outputs.typescript_go_commit }}
+          CHECKER_BINARY: ${{ matrix.checker-binary }}
         run: |
           set -euo pipefail
-          mkdir -p package/bin
+          checker_root="source/tools/typescript-checker/release/libexec/worldant/typescript/$CHECKER_COMMIT"
+          package_checker="package/libexec/worldant/typescript/$CHECKER_COMMIT"
+          test -x "$checker_root/$CHECKER_BINARY"
+          mkdir -p package/bin "$package_checker"
           cp "source/target/$TARGET/release/worldant" package/bin/worldant
+          cp -R "$checker_root/." "$package_checker/"
           chmod +x package/bin/worldant
-          tar -C package -czf "worldant-$VERSION-$KEY.tar.gz" bin/worldant
+          tar -C package -czf "worldant-$VERSION-$KEY.tar.gz" \
+            bin/worldant "libexec/worldant/typescript/$CHECKER_COMMIT"
+          node public/scripts/verify-release-archive.mjs \
+            "worldant-$VERSION-$KEY.tar.gz" \
+            source/tools/typescript-checker/pin.json \
+            "$TARGET" \
+            "$CHECKER_BINARY"
       - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
         with:
           name: worldant-${{ matrix.key }}
