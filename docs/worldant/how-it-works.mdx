@@ -6,6 +6,18 @@ description: Build snapshots, hosted capabilities, and durable Workflow replay.
 Worldant builds a world by discovering filesystem artifacts, validating imports and migrations,
 transpiling TypeScript, reflecting schema, and publishing an immutable run snapshot.
 
+OXC is the compiler frontend and owns parsing, artifact semantics, graphs, transformation, and
+emitted files. Before native Command source is staged, an optional final diagnostics-only plugin
+also checks its complete TypeScript source/type closure with Worldant's pinned TypeScript-Go
+artifact. Browser authoring performs the same acceptance check for mounted presentation and
+receiver-owned Command roots in its compiler worker after exact package declarations are prepared.
+The checker cannot emit code, alter catalogs, or contribute compiler facts.
+
+A definite semantic error blocks the candidate before staging or browser activation. Missing,
+corrupt, crashed, or timed-out checker execution also blocks explicitly; native authoring never
+falls back to an unchecked snapshot, and browser authoring retains its previous active generation
+and package locks.
+
 The host serves compatible snapshots. New calls use the current compatible snapshot. In-flight
 Workflow runs stay pinned to the snapshot they started with.
 

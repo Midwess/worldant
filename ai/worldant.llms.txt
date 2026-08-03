@@ -4,6 +4,12 @@ Worldant is a filesystem-authored runtime for immediate application functions an
 processes. A build freezes source into an immutable run snapshot. The host runs snapshots, not the
 working tree.
 
+OXC is the sole compiler frontend and output authority. Native Command roots and browser
+presentation/Command roots may pass through one final diagnostics-only TypeScript-Go acceptance
+plugin before staging or activation. Semantic errors and checker infrastructure failures block;
+browser failure retains the previous active generation. The checker never emits files or changes
+Worldant artifacts, schemas, catalogs, package plans, or identity.
+
 ## Read First
 
 - Human docs: `docs/worldant/index.mdx`
