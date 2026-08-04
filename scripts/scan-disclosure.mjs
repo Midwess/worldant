@@ -11,7 +11,7 @@ const DENY = [
   { name: "private repo bare name", re: new RegExp(`\\b${PRIVATE_REPO}\\b`) },
   { name: "local macOS home path", re: /\/Users\/[a-z0-9._-]+/i },
   { name: "local linux home path", re: /\/home\/[a-z0-9._-]+/i },
-  { name: "az-wire private submodule", re: /az-wire/ },
+  { name: "unb private submodule", re: /unb/ },
 ]
 
 const SKIP_DIRS = new Set([".git", "node_modules"])
