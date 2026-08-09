@@ -366,6 +366,7 @@ jobs:
           (cd npm-smoke && node --input-type=module -e 'const manifest = await import("./node_modules/@midwess/worldant/package.json", { with: { type: "json" } }); if (manifest.default.version !== process.env.VERSION) throw new Error("TypeScript package install mismatch"); const root = await import("@midwess/worldant"); const client = await import("@midwess/worldant/client"); if (typeof root.defineCommand !== "function" || typeof client.createWorld !== "function") throw new Error("TypeScript package exports are unavailable")')
       - name: Publish npm TypeScript package
         env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_SECRET_KEY }}
           VERSION: ${{ inputs.version }}
         run: |
           published="$(npm view @midwess/worldant@"$VERSION" version 2>/dev/null || true)"
@@ -373,6 +374,7 @@ jobs:
       - name: Publish npm CLI installer
         working-directory: packages/cli
         env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_SECRET_KEY }}
           VERSION: ${{ inputs.version }}
         run: |
           published="$(npm view @midwess/worldant-cli@"$VERSION" version 2>/dev/null || true)"

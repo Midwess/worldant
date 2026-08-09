@@ -66,7 +66,8 @@ test("release workflow publishes separate library and CLI packages", () => {
   assert.match(workflow, /npm install --ignore-scripts --no-package-lock --prefix npm-smoke/)
   assert.match(workflow, /npm view @midwess\/worldant@"\$VERSION" version/)
   assert.match(workflow, /npm view @midwess\/worldant-cli@"\$VERSION" version/)
-  assert.doesNotMatch(workflow, /NPM_SECRET_KEY|NODE_AUTH_TOKEN|_authToken/)
+  assert.match(workflow, /NODE_AUTH_TOKEN: \$\{\{ secrets\.NPM_SECRET_KEY \}\}/)
+  assert.doesNotMatch(workflow, /_authToken/)
 })
 
 function write(path, content, mode) {
