@@ -15,6 +15,7 @@ import { test } from "node:test"
 
 const repository = new URL("..", import.meta.url)
 const workflow = readFileSync(new URL("../.github/workflows/build-release.yml", import.meta.url), "utf8")
+const cliManifest = JSON.parse(readFileSync(new URL("../packages/cli/package.json", import.meta.url), "utf8"))
 const verifier = new URL("../scripts/verify-release-archive.mjs", import.meta.url)
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex")
 
@@ -52,6 +53,19 @@ test("release workflow builds and packages the pinned checker for every supporte
     /cargo test --release --target "\$TARGET" --workspace --exclude world-browser --exclude integration-test/,
   )
   assert.doesNotMatch(workflow, /world-host|world-share|world-build/)
+})
+
+test("release workflow publishes separate library and CLI packages", () => {
+  assert.equal(cliManifest.name, "worldant-cli")
+  assert.equal(cliManifest.version, "1.2.0")
+  assert.equal(cliManifest.bin.worldant, "bin/worldant.js")
+  assert.match(workflow, /source\/scripts\/package-npm\.sh/)
+  assert.match(workflow, /worldant-\$VERSION\.tgz/)
+  assert.match(workflow, /npm publish "release-assets\/worldant-\$VERSION\.tgz" --access public --provenance/)
+  assert.match(workflow, /npm install --ignore-scripts --no-package-lock --prefix npm-smoke/)
+  assert.match(workflow, /npm view worldant@"\$VERSION" version/)
+  assert.match(workflow, /npm view worldant-cli@"\$VERSION" version/)
+  assert.doesNotMatch(workflow, /npm view @midwess\/worldant/)
 })
 
 function write(path, content, mode) {

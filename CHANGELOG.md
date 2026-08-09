@@ -9,6 +9,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- The unified `worldant` npm package with authoring, client, React, Vite, browser compiler, and
+  TypeScript checker assets under one version.
+
+### Changed
+- The native npm installer is now named `worldant-cli`; its installed executable remains
+  `worldant`.
+- Release CI packs `worldant` from the exact private source revision and verifies both unscoped npm
+  packages before finalizing a release.
+
 ## [1.1.0] — 2026-07-18
 
 ### Added

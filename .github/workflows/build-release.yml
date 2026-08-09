@@ -11,11 +11,11 @@ on:
       version:
         description: Exact version
         required: true
-        default: 1.1.0
+        default: 1.2.0
       source_ref:
         description: Private source branch, tag, or SHA
         required: true
-        default: release/1.0.0-source
+        default: main
       run_release:
         description: Sign, publish to npm, and create the GitHub Release (leave false to only build+test)
         type: boolean
@@ -88,6 +88,14 @@ jobs:
             [ "$sub" = "docs" ] && continue
             git -C PgPaw submodule update --init --recursive "$sub"
           done
+          if [ "${{ matrix.key }}" = "linux-x64" ]; then
+            git -C source config -f .gitmodules --get-regexp 'submodule\..*\.path' | awk '{print $2}' | while read -r sub; do
+              case "$sub" in
+                docs|pgpaw|vendor/bun) continue ;;
+              esac
+              git -C source submodule update --init --recursive "$sub"
+            done
+          fi
 
       - name: Read and validate the checker pin
         id: checker
@@ -254,6 +262,21 @@ jobs:
             tools/typescript-checker/release/browser/worldant-tscheck.wasm \
             tools/typescript-checker/fixtures
 
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af
+        if: matrix.key == 'linux-x64'
+        with:
+          node-version: 22
+
+      - name: Install browser package tooling
+        if: matrix.key == 'linux-x64'
+        run: cargo install wasm-pack --version 0.13.1 --locked
+
+      - name: Package TypeScript release
+        if: matrix.key == 'linux-x64'
+        env:
+          VERSION: ${{ inputs.version }}
+        run: bash source/scripts/package-npm.sh "$VERSION" "$GITHUB_WORKSPACE/worldant-$VERSION.tgz"
+
       - name: Test the engine on this platform
         working-directory: source
         env:
@@ -291,6 +314,13 @@ jobs:
           path: worldant-${{ inputs.version }}-${{ matrix.key }}.tar.gz
           if-no-files-found: error
 
+      - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+        if: matrix.key == 'linux-x64'
+        with:
+          name: worldant-npm
+          path: worldant-${{ inputs.version }}.tgz
+          if-no-files-found: error
+
   release:
     name: Sign, publish, and verify
     needs: build
@@ -323,18 +353,35 @@ jobs:
         run: |
           gh release view "v$VERSION" >/dev/null 2>&1 || gh release create "v$VERSION" --draft --title "Worldant v$VERSION" --notes-file CHANGELOG.md
           gh release upload "v$VERSION" release-assets/* --clobber
-      - name: Publish scoped npm installer
+      - name: Verify npm release install
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          node -e 'const manifest = require("./packages/cli/package.json"); if (manifest.name !== "worldant-cli" || manifest.version !== process.env.VERSION) throw new Error("CLI package identity does not match release")'
+          npm install --ignore-scripts --no-package-lock --prefix npm-smoke "./release-assets/worldant-$VERSION.tgz"
+      - name: Publish npm TypeScript package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_SECRET_KEY }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          published="$(npm view worldant@"$VERSION" version 2>/dev/null || true)"
+          [ "$published" = "$VERSION" ] || npm publish "release-assets/worldant-$VERSION.tgz" --access public --provenance
+      - name: Publish npm CLI installer
         working-directory: packages/cli
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_SECRET_KEY }}
-        run: npm publish --access public --provenance
-      - name: Verify npm publication
+          VERSION: ${{ inputs.version }}
+        run: |
+          published="$(npm view worldant-cli@"$VERSION" version 2>/dev/null || true)"
+          [ "$published" = "$VERSION" ] || npm publish --access public --provenance
+      - name: Verify npm publications
         env:
           VERSION: ${{ inputs.version }}
         run: |
           for attempt in 1 2 3 4 5 6; do
-            published="$(npm view @midwess/worldant@"$VERSION" version 2>/dev/null || true)"
-            [ "$published" = "$VERSION" ] && exit 0
+            library="$(npm view worldant@"$VERSION" version 2>/dev/null || true)"
+            installer="$(npm view worldant-cli@"$VERSION" version 2>/dev/null || true)"
+            [ "$library" = "$VERSION" ] && [ "$installer" = "$VERSION" ] && exit 0
             sleep 5
           done
           exit 1

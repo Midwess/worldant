@@ -5,7 +5,7 @@ A minimal Worldant world. It runs only against a released `worldant` binary — 
 ## 1. Install
 
 ```bash
-npm install --global @midwess/worldant
+npm install --global worldant-cli
 worldant --help
 ```
 

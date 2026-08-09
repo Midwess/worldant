@@ -3,7 +3,7 @@
 Thin, verifying installer and launcher for the Worldant runtime.
 
 ```bash
-npm install --global @midwess/worldant
+npm install --global worldant-cli
 worldant --help
 ```
 

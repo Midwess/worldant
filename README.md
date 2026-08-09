@@ -10,12 +10,20 @@ only signed, immutable release artifacts — it never builds the runtime from pr
 
 ## Install
 
+Install the TypeScript authoring, client, and browser runtime in an application:
+
 ```bash
-npm install --global @midwess/worldant
+npm install worldant
+```
+
+Install the native CLI globally:
+
+```bash
+npm install --global worldant-cli
 worldant --help
 ```
 
-The npm package is a thin, verifying installer. On install it:
+The `worldant-cli` package is a thin, verifying installer. On install it:
 
 1. Resolves its own exact version.
 2. Maps your OS/architecture to one signed manifest target (macOS arm64/x64, Linux arm64/x64).

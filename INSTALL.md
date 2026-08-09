@@ -8,13 +8,13 @@
 ## Install
 
 ```bash
-npm install --global @midwess/worldant
+npm install --global worldant-cli
 worldant --help
 ```
 
 ## What the installer verifies
 
-The `@midwess/worldant` npm package is a thin launcher. It never contains the runtime binary. On
+The `worldant-cli` npm package is a thin launcher. It never contains the runtime binary. On
 `postinstall` it performs a fail-closed verification chain:
 
 1. **Version resolution** — resolves its own exact package version; requires the fetched manifest to
@@ -36,7 +36,7 @@ The `@midwess/worldant` npm package is a thin launcher. It never contains the ru
 ## Upgrade
 
 ```bash
-npm install --global @midwess/worldant@<new-version>
+npm install --global worldant-cli@<new-version>
 ```
 
 Upgrades install into a new versioned directory and verify fully before the launcher pointer is
@@ -49,7 +49,7 @@ the launcher:
 
 ```bash
 worldant-uninstall
-npm uninstall --global @midwess/worldant
+npm uninstall --global worldant-cli
 ```
 
 `worldant-uninstall` removes only package-owned binaries and metadata under `~/.worldant` and
