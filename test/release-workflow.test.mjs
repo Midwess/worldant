@@ -62,9 +62,11 @@ test("release workflow publishes separate library and CLI packages", () => {
   assert.match(workflow, /source\/scripts\/package-npm\.sh/)
   assert.match(workflow, /worldant-\$VERSION\.tgz/)
   assert.match(workflow, /npm publish "release-assets\/worldant-\$VERSION\.tgz" --access public --provenance/)
+  assert.match(workflow, /npm install --global npm@11\.5\.1/)
   assert.match(workflow, /npm install --ignore-scripts --no-package-lock --prefix npm-smoke/)
   assert.match(workflow, /npm view @midwess\/worldant@"\$VERSION" version/)
   assert.match(workflow, /npm view @midwess\/worldant-cli@"\$VERSION" version/)
+  assert.doesNotMatch(workflow, /NPM_SECRET_KEY|NODE_AUTH_TOKEN|_authToken/)
 })
 
 function write(path, content, mode) {

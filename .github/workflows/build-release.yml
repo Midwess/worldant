@@ -333,6 +333,10 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+      - name: Install trusted-publishing npm client
+        run: |
+          npm install --global npm@11.5.1
+          test "$(npm --version)" = 11.5.1
       - run: npm ci --ignore-scripts
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
@@ -362,7 +366,6 @@ jobs:
           (cd npm-smoke && node --input-type=module -e 'const manifest = await import("./node_modules/@midwess/worldant/package.json", { with: { type: "json" } }); if (manifest.default.version !== process.env.VERSION) throw new Error("TypeScript package install mismatch"); const root = await import("@midwess/worldant"); const client = await import("@midwess/worldant/client"); if (typeof root.defineCommand !== "function" || typeof client.createWorld !== "function") throw new Error("TypeScript package exports are unavailable")')
       - name: Publish npm TypeScript package
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_SECRET_KEY }}
           VERSION: ${{ inputs.version }}
         run: |
           published="$(npm view @midwess/worldant@"$VERSION" version 2>/dev/null || true)"
@@ -370,7 +373,6 @@ jobs:
       - name: Publish npm CLI installer
         working-directory: packages/cli
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_SECRET_KEY }}
           VERSION: ${{ inputs.version }}
         run: |
           published="$(npm view @midwess/worldant-cli@"$VERSION" version 2>/dev/null || true)"
