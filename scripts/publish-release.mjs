@@ -8,7 +8,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..")
 const cliDir = join(root, "packages", "cli")
 const version = (process.env.RELEASE_VERSION || "").replace(/^v/, "")
 const tag = `v${version}`
-const packageName = "worldant-cli"
+const packageName = "@midwess/worldant-cli"
 const stageArg = process.argv.indexOf("--stage")
 const stage = stageArg >= 0 ? process.argv[stageArg + 1] : ""
 

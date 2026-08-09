@@ -56,16 +56,15 @@ test("release workflow builds and packages the pinned checker for every supporte
 })
 
 test("release workflow publishes separate library and CLI packages", () => {
-  assert.equal(cliManifest.name, "worldant-cli")
+  assert.equal(cliManifest.name, "@midwess/worldant-cli")
   assert.equal(cliManifest.version, "1.2.0")
   assert.equal(cliManifest.bin.worldant, "bin/worldant.js")
   assert.match(workflow, /source\/scripts\/package-npm\.sh/)
   assert.match(workflow, /worldant-\$VERSION\.tgz/)
   assert.match(workflow, /npm publish "release-assets\/worldant-\$VERSION\.tgz" --access public --provenance/)
   assert.match(workflow, /npm install --ignore-scripts --no-package-lock --prefix npm-smoke/)
-  assert.match(workflow, /npm view worldant@"\$VERSION" version/)
-  assert.match(workflow, /npm view worldant-cli@"\$VERSION" version/)
-  assert.doesNotMatch(workflow, /npm view @midwess\/worldant/)
+  assert.match(workflow, /npm view @midwess\/worldant@"\$VERSION" version/)
+  assert.match(workflow, /npm view @midwess\/worldant-cli@"\$VERSION" version/)
 })
 
 function write(path, content, mode) {

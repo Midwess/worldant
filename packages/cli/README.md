@@ -1,9 +1,9 @@
-# worldant
+# @midwess/worldant-cli
 
 Thin, verifying installer and launcher for the Worldant runtime.
 
 ```bash
-npm install --global worldant-cli
+npm install --global @midwess/worldant-cli
 worldant --help
 ```
 

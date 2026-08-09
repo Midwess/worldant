@@ -357,14 +357,15 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
         run: |
-          node -e 'const manifest = require("./packages/cli/package.json"); if (manifest.name !== "worldant-cli" || manifest.version !== process.env.VERSION) throw new Error("CLI package identity does not match release")'
+          node -e 'const manifest = require("./packages/cli/package.json"); if (manifest.name !== "@midwess/worldant-cli" || manifest.version !== process.env.VERSION) throw new Error("CLI package identity does not match release")'
           npm install --ignore-scripts --no-package-lock --prefix npm-smoke "./release-assets/worldant-$VERSION.tgz"
+          (cd npm-smoke && node --input-type=module -e 'const manifest = await import("./node_modules/@midwess/worldant/package.json", { with: { type: "json" } }); if (manifest.default.version !== process.env.VERSION) throw new Error("TypeScript package install mismatch"); const root = await import("@midwess/worldant"); const client = await import("@midwess/worldant/client"); if (typeof root.defineCommand !== "function" || typeof client.createWorld !== "function") throw new Error("TypeScript package exports are unavailable")')
       - name: Publish npm TypeScript package
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_SECRET_KEY }}
           VERSION: ${{ inputs.version }}
         run: |
-          published="$(npm view worldant@"$VERSION" version 2>/dev/null || true)"
+          published="$(npm view @midwess/worldant@"$VERSION" version 2>/dev/null || true)"
           [ "$published" = "$VERSION" ] || npm publish "release-assets/worldant-$VERSION.tgz" --access public --provenance
       - name: Publish npm CLI installer
         working-directory: packages/cli
@@ -372,15 +373,15 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_SECRET_KEY }}
           VERSION: ${{ inputs.version }}
         run: |
-          published="$(npm view worldant-cli@"$VERSION" version 2>/dev/null || true)"
+          published="$(npm view @midwess/worldant-cli@"$VERSION" version 2>/dev/null || true)"
           [ "$published" = "$VERSION" ] || npm publish --access public --provenance
       - name: Verify npm publications
         env:
           VERSION: ${{ inputs.version }}
         run: |
           for attempt in 1 2 3 4 5 6; do
-            library="$(npm view worldant@"$VERSION" version 2>/dev/null || true)"
-            installer="$(npm view worldant-cli@"$VERSION" version 2>/dev/null || true)"
+            library="$(npm view @midwess/worldant@"$VERSION" version 2>/dev/null || true)"
+            installer="$(npm view @midwess/worldant-cli@"$VERSION" version 2>/dev/null || true)"
             [ "$library" = "$VERSION" ] && [ "$installer" = "$VERSION" ] && exit 0
             sleep 5
           done
