@@ -97,6 +97,13 @@ jobs:
             done
           fi
 
+      - name: Validate npm workspace dependency install
+        if: matrix.key == 'linux-x64'
+        working-directory: source
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
       - name: Read and validate the checker pin
         id: checker
         env:
