@@ -21,9 +21,10 @@ across Step retries.
 ## Authoring a Workflow with Steps
 
 A Workflow imports Steps by their authored binding and awaits them as durable checkpoints.
+The following folders organize the example only; the directives, not the paths, declare each role.
 
 ```ts
-// workflows/remind.ts
+// src/reminders/remind.ts
 import { sleep } from "worldant"
 import { loadItem } from "./steps/loadItem.ts"
 import { sendReminder } from "./steps/sendReminder.ts"
@@ -42,7 +43,7 @@ and branching on `item.done` replays from the recorded Step output. Workflows ma
 `sleep` and `waitForEvent` from `worldant` — database access belongs in Steps.
 
 ```ts
-// workflows/steps/loadItem.ts
+// src/reminders/loadItem.ts
 import { session } from "worldant/client"
 
 type SqlReply<Row> = { command: string; rows: Row[]; rowsAffected: number }
@@ -58,7 +59,7 @@ async function loadItem(input: { id: number }) {
 ```
 
 ```ts
-// workflows/steps/sendReminder.ts
+// src/reminders/sendReminder.ts
 import { emit } from "worldant"
 
 async function sendReminder(input: { id: number; title: string }) {

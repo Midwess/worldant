@@ -5,8 +5,9 @@ processes. Truth and realtime both come from a single embedded PostgreSQL engine
 duplicate application data store.
 
 This is the **public product, packaging, release, and support** repository. The Rust runtime source
-is proprietary and lives in a separate private repository. Everything here is Apache-2.0 and consumes
-only signed, immutable release artifacts — it never builds the runtime from private source.
+is proprietary and lives in a separate private repository. Everything here is Apache-2.0. Ordinary
+public CI consumes only signed, immutable release artifacts; the protected release environment may
+check out an exact private source revision to build, sign, and publish a release.
 
 ## Install
 
@@ -37,15 +38,16 @@ path-traversal archives, and redirects to disallowed origins. See [INSTALL.md](I
 
 ## What Worldant runs
 
-Two public callable concepts, identified by filesystem path. `worldant init` creates the single-app
-root layout. Set `name` in `worldant.ts` to choose the app namespace, or let Worldant normalize the
-directory name. Existing multi-app worlds may use the `apps/<app>/...` layout.
+Two public callable concepts are declared by directives or their wrapper functions. Directories are
+organizational: one source module may contain presentation code, Commands, Workflows, internal
+Steps, and helpers. Public identity is the configured application plus the declared binding name.
+Moving a declaration without renaming it does not change that identity.
 
-| Path | Kind | Meaning |
-|------|------|---------|
-| `commands/*.ts` or `apps/<app>/commands/*.ts` | **Command** | Immediate, non-durable function. Reads/writes PostgreSQL; may schedule Workflows. |
-| `workflows/*.ts` or `apps/<app>/workflows/*.ts` | **Workflow** | Durable, deterministic orchestration replayed from a PostgreSQL journal. |
-| `workflows/steps/*.ts` or `apps/<app>/workflows/steps/*.ts` | *Step* | **Internal** Workflow IO checkpoint — never publicly callable. |
+| Declaration | Kind | Meaning |
+|-------------|------|---------|
+| `"worldant::command"` or `defineCommand()` | **Command** | Immediate, non-durable function. Reads/writes PostgreSQL; may schedule Workflows. |
+| `"worldant::workflow"` or `defineWorkflow()` | **Workflow** | Durable, deterministic orchestration replayed from a PostgreSQL journal. |
+| `"worldant::step"` or `defineStep()` | *Step* | **Internal** Workflow IO checkpoint — never publicly callable. |
 
 Query, Mutation, Reactive/Rule, Goal, and generic Action are **not** current concepts. Collection
 sync and event streams are protocol facilities, not authored artifacts.
@@ -63,8 +65,9 @@ the same source.
 | `Midwess/worldant` (this) | Public product, packaging, releases, support, docs, templates, LLM entry points |
 | `Midwess/web` | Company website renderer for multi-product documentation |
 
-The Worldant runtime is built and signed in a separate private repository (the artifact authority).
-This repository consumes only its signed, immutable release artifacts.
+The Worldant runtime source lives in a separate private repository. The protected release workflow
+checks out an exact revision, builds every target, signs the manifest, publishes both npm packages,
+and finalizes one immutable GitHub release.
 
 ## Support
 

@@ -24,11 +24,13 @@ Worldant artifacts, schemas, catalogs, package plans, or identity.
 
 Worldant has two public callable concepts:
 
-- Command: immediate, non-durable function under `commands/` or `apps/<app>/commands/`.
-- Workflow: durable deterministic orchestration under `workflows/` or `apps/<app>/workflows/`.
+- Command: immediate, non-durable function declared by `"worldant::command"` or `defineCommand()`.
+- Workflow: durable deterministic orchestration declared by `"worldant::workflow"` or
+  `defineWorkflow()`.
 
-Steps live under `workflows/steps/` or `apps/<app>/workflows/steps/`. They are internal Workflow IO
-checkpoints and are not public callables.
+Steps use `"worldant::step"` or `defineStep()`. They are internal Workflow IO checkpoints and are
+not public callables. Directories are organizational, a module may mix roles, and identity is the
+configured application plus the declared binding name.
 
 Removed concepts are not available: Query, Mutation, Reactive/Rule, Goal, generic Action, and
 public Step APIs.
@@ -38,7 +40,7 @@ public Step APIs.
 Use the generic client handle:
 
 ```ts
-import { createWorld, start } from "worldant/client"
+import { createWorld, start } from "@midwess/worldant/client"
 
 const world = createWorld({ url: "ws://127.0.0.1:8787/__worldant/v1/ws" })
 const result = await world.todo.add({ title: "Buy milk" })

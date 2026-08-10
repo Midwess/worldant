@@ -12,11 +12,6 @@
     { "path": "tsconfig.json" },
     { "path": "generated/worldant.d.ts" },
     { "path": ".gitignore" },
-    { "path": "migrations/README.md" },
-    { "path": "commands/README.md" },
-    { "path": "workflows/README.md" },
-    { "path": "workflows/steps/README.md" },
-    { "path": "lib/README.md" },
-    { "path": "tests/README.md" }
+    { "path": "src/main.ts" }
   ]
 }

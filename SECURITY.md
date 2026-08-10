@@ -53,5 +53,6 @@ updates unless otherwise stated in the changelog.
 ## What this repository does not contain
 
 This repository never contains the private runtime source, private build credentials, or signing
-keys. Public CI has no credential that can clone the private repository and never runs untrusted code
+keys. Ordinary public CI has no credential that can clone the private repository. The protected
+release environment alone receives a narrowly scoped checkout credential and never runs untrusted code
 with publishing credentials.

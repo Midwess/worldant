@@ -1,6 +1,6 @@
 # Quickstart
 
-A minimal Worldant world. It runs only against a released `worldant` binary — no private source.
+A minimal Worldant world. It runs against a released `worldant` binary.
 
 ## 1. Install
 
@@ -19,10 +19,10 @@ cd todo
 This folder is the Worldant source root. Its application schema lives separately in
 `../quickstart-pgpaw`.
 
-## 3. Build and serve
+## 3. Check and serve
 
 ```bash
-worldant build
+worldant check
 pgpaw migrate --source ../quickstart-pgpaw --namespace todo \
   --data-dir .worldant/data --database postgres
 worldant serve
@@ -30,7 +30,7 @@ worldant serve
 
 ## 4. Call the Command
 
-`apps/todo/commands/add.ts` is published as Command `todo.add`. Reads and writes are Commands;
-there is no separate Query or Mutation kind. Durable orchestration would live under
-`apps/todo/workflows/` as a Workflow; internal Steps under `workflows/steps/` are never publicly
-callable.
+The `"worldant::command"` directive on the `add` binding publishes Command `todo.add`; its path is
+only organizational. Reads and writes are Commands, with no separate Query or Mutation kind. The
+Workflow and internal Step examples use conventional folders for readability, but their directives,
+not those folders, declare their roles.

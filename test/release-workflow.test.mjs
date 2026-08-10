@@ -2,6 +2,7 @@ import { createHash } from "node:crypto"
 import { execFileSync, spawnSync } from "node:child_process"
 import {
   chmodSync,
+  existsSync,
   mkdtempSync,
   mkdirSync,
   readFileSync,
@@ -20,6 +21,10 @@ const verifier = new URL("../scripts/verify-release-archive.mjs", import.meta.ur
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex")
 
 test("release workflow builds and packages the pinned checker for every supported target", () => {
+  assert.match(workflow, /resolve:\n\s+name: Resolve immutable source revision/)
+  assert.match(workflow, /sha="\$\(git -C source rev-parse HEAD\)"/)
+  assert.match(workflow, /ref: \$\{\{ needs\.resolve\.outputs\.source_sha \}\}/)
+  assert.match(workflow, /SOURCE_SHA: \$\{\{ needs\.resolve\.outputs\.source_sha \}\}/)
   for (const [target, archive, binary] of [
     ["aarch64-apple-darwin", "darwin-arm64", "worldant-tscheck-darwin-arm64"],
     ["x86_64-unknown-linux-gnu", "linux-amd64", "worldant-tscheck-linux-amd64"],
@@ -66,13 +71,17 @@ test("release workflow publishes separate library and CLI packages", () => {
   assert.equal(cliManifest.bin.worldant, "bin/worldant.js")
   assert.match(workflow, /source\/scripts\/package-npm\.sh/)
   assert.match(workflow, /worldant-\$VERSION\.tgz/)
+  assert.match(workflow, /npm-release-state\.mjs @midwess\/worldant "\$VERSION"/)
+  assert.match(workflow, /npm-release-state\.mjs @midwess\/worldant-cli "\$VERSION"/)
   assert.match(workflow, /npm publish "\.\/release-assets\/worldant-\$VERSION\.tgz" --access public --provenance/)
+  assert.match(workflow, /npm publish "\$tarball" --access public --provenance/)
+  assert.match(workflow, /verify-release-assets\.mjs "v\$VERSION" release-assets/)
+  assert.match(workflow, /value\.isDraft \? 0 : 1/)
   assert.match(workflow, /npm install --global npm@11\.5\.1/)
   assert.match(workflow, /npm install --ignore-scripts --no-package-lock --prefix npm-smoke/)
-  assert.match(workflow, /npm view @midwess\/worldant@"\$VERSION" version/)
-  assert.match(workflow, /npm view @midwess\/worldant-cli@"\$VERSION" version/)
   assert.match(workflow, /NODE_AUTH_TOKEN: \$\{\{ secrets\.NPM_SECRET_KEY \}\}/)
   assert.doesNotMatch(workflow, /_authToken/)
+  assert.equal(existsSync(new URL("../.github/workflows/release.yml", import.meta.url)), false)
 })
 
 function write(path, content, mode) {

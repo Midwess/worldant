@@ -10,7 +10,7 @@ on:
       version:
         description: Exact version
         required: true
-        default: 1.2.0
+        default: 1.2.1
       source_ref:
         description: Private source branch, tag, or SHA
         required: true
@@ -35,8 +35,31 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  resolve:
+    name: Resolve immutable source revision
+    runs-on: ubuntu-latest
+    environment: release
+    outputs:
+      source_sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - name: Resolve private source ref once
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: Midwess/worldant-internal
+          ref: ${{ inputs.source_ref }}
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          path: source
+      - name: Export exact source commit
+        id: source
+        run: |
+          set -euo pipefail
+          sha="$(git -C source rev-parse HEAD)"
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
   build:
     name: Build and test ${{ matrix.key }}
+    needs: resolve
     environment: release
     strategy:
       fail-fast: false
@@ -68,7 +91,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: Midwess/worldant-internal
-          ref: ${{ inputs.source_ref }}
+          ref: ${{ needs.resolve.outputs.source_sha }}
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
           path: source
 
@@ -335,7 +358,7 @@ jobs:
 
   release:
     name: Sign, publish, and verify
-    needs: build
+    needs: [resolve, build]
     if: ${{ inputs.run_release == true }}
     runs-on: ubuntu-latest
     environment: release
@@ -355,20 +378,40 @@ jobs:
           pattern: worldant-*
           merge-multiple: true
           path: release-assets
+      - name: Pack the exact CLI installer
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          filename="$(npm pack ./packages/cli --pack-destination release-assets --json | node -e 'let text=""; process.stdin.on("data", chunk => text += chunk).on("end", () => console.log(JSON.parse(text)[0].filename))')"
+          test "$filename" = "midwess-worldant-cli-$VERSION.tgz"
       - name: Assemble release evidence and manifest
         env:
           VERSION: ${{ inputs.version }}
-          SOURCE_REF: ${{ inputs.source_ref }}
+          SOURCE_SHA: ${{ needs.resolve.outputs.source_sha }}
         run: node scripts/assemble-release.mjs
       - name: Sign manifest with sigstore-js
         run: node scripts/sign-release.mjs
-      - name: Create draft release and upload every asset
+      - name: Reconcile draft or immutable finalized release
+        id: github_release
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
         run: |
-          gh release view "v$VERSION" >/dev/null 2>&1 || gh release create "v$VERSION" --draft --title "Worldant v$VERSION" --notes-file CHANGELOG.md
-          gh release upload "v$VERSION" release-assets/* --clobber
+          set -euo pipefail
+          if gh release view "v$VERSION" --json isDraft > release.json 2>/dev/null; then
+            if node -e 'const value = require("./release.json"); process.exit(value.isDraft ? 0 : 1)'; then
+              gh release upload "v$VERSION" release-assets/* --clobber
+              echo "state=draft" >> "$GITHUB_OUTPUT"
+            else
+              node scripts/verify-release-assets.mjs "v$VERSION" release-assets
+              echo "state=finalized" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            gh release create "v$VERSION" --draft --title "Worldant v$VERSION" --notes-file CHANGELOG.md
+            gh release upload "v$VERSION" release-assets/*
+            echo "state=draft" >> "$GITHUB_OUTPUT"
+          fi
       - name: Verify npm release install
         env:
           VERSION: ${{ inputs.version }}
@@ -376,29 +419,35 @@ jobs:
           node -e 'const manifest = require("./packages/cli/package.json"); if (manifest.name !== "@midwess/worldant-cli" || manifest.version !== process.env.VERSION) throw new Error("CLI package identity does not match release")'
           npm install --ignore-scripts --no-package-lock --prefix npm-smoke "./release-assets/worldant-$VERSION.tgz"
           (cd npm-smoke && node --input-type=module -e 'const manifest = await import("./node_modules/@midwess/worldant/package.json", { with: { type: "json" } }); if (manifest.default.version !== process.env.VERSION) throw new Error("TypeScript package install mismatch"); const root = await import("@midwess/worldant"); const client = await import("@midwess/worldant/client"); if (typeof root.defineCommand !== "function" || typeof client.createWorld !== "function") throw new Error("TypeScript package exports are unavailable")')
-      - name: Publish npm TypeScript package
+      - name: Reconcile npm TypeScript package
+        id: library
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_SECRET_KEY }}
           VERSION: ${{ inputs.version }}
         run: |
-          published="$(npm view @midwess/worldant@"$VERSION" version 2>/dev/null || true)"
-          [ "$published" = "$VERSION" ] || npm publish "./release-assets/worldant-$VERSION.tgz" --access public --provenance
-      - name: Publish npm CLI installer
-        working-directory: packages/cli
+          set -euo pipefail
+          state="$(node scripts/npm-release-state.mjs @midwess/worldant "$VERSION" "release-assets/worldant-$VERSION.tgz")"
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+          [ "$state" = "already-published" ] || npm publish "./release-assets/worldant-$VERSION.tgz" --access public --provenance
+      - name: Reconcile npm CLI installer
+        id: cli
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_SECRET_KEY }}
           VERSION: ${{ inputs.version }}
         run: |
-          published="$(npm view @midwess/worldant-cli@"$VERSION" version 2>/dev/null || true)"
-          [ "$published" = "$VERSION" ] || npm publish --access public --provenance
+          set -euo pipefail
+          tarball="release-assets/midwess-worldant-cli-$VERSION.tgz"
+          state="$(node scripts/npm-release-state.mjs @midwess/worldant-cli "$VERSION" "$tarball")"
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+          [ "$state" = "already-published" ] || npm publish "$tarball" --access public --provenance
       - name: Verify npm publications
         env:
           VERSION: ${{ inputs.version }}
         run: |
           for attempt in 1 2 3 4 5 6; do
-            library="$(npm view @midwess/worldant@"$VERSION" version 2>/dev/null || true)"
-            installer="$(npm view @midwess/worldant-cli@"$VERSION" version 2>/dev/null || true)"
-            [ "$library" = "$VERSION" ] && [ "$installer" = "$VERSION" ] && exit 0
+            library="$(node scripts/npm-release-state.mjs @midwess/worldant "$VERSION" "release-assets/worldant-$VERSION.tgz" || true)"
+            installer="$(node scripts/npm-release-state.mjs @midwess/worldant-cli "$VERSION" "release-assets/midwess-worldant-cli-$VERSION.tgz" || true)"
+            [ "$library" = "already-published" ] && [ "$installer" = "already-published" ] && exit 0
             sleep 5
           done
           exit 1
@@ -406,4 +455,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
+        if: steps.github_release.outputs.state == 'draft'
         run: gh release edit "v$VERSION" --draft=false --latest

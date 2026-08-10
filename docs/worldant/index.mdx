@@ -3,9 +3,9 @@ title: Worldant
 description: Filesystem-authored Commands, durable Workflows, and PostgreSQL-backed runtime state.
 ---
 
-Worldant runs filesystem-authored application functions and durable processes. A successful build
-freezes source into an immutable `.dist` snapshot, and the host runs snapshots instead of the
-working tree.
+Worldant runs filesystem-authored application functions and durable processes. `worldant serve`
+checks the source tree, stages an immutable journal snapshot, activates it, and serves that snapshot
+instead of executing the working tree directly.
 
 Worldant has two public callable concepts:
 
@@ -19,29 +19,20 @@ generic Action.
 
 ## World Shape
 
-Single-app worlds use `worldant.ts` `name` as the app namespace. If omitted, Worldant derives a
-valid identifier from the root directory name:
+`worldant init` creates one bounded source root. The configured `application` and `world` determine
+runtime identity; declarations determine artifacts, and directories only organize source:
 
 ```text
 todo/
   worldant.ts
-  migrations/
-  commands/
-  workflows/
-    steps/
-  lib/
-  tests/
+  src/
+    main.ts
   generated/
 ```
 
-Existing multi-app worlds may use:
-
-```text
-apps/<app>/commands/
-apps/<app>/workflows/
-apps/<app>/workflows/steps/
-apps/<app>/migrations/
-```
+`"worldant::command"`, `"worldant::workflow"`, and `"worldant::step"` declare artifacts. Their
+`defineCommand()`, `defineWorkflow()`, and `defineStep()` wrappers are equivalent. A module may mix
+those declarations with presentation code and helpers; the compiler emits role-pure outputs.
 
 ## Core Rule
 

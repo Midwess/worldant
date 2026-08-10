@@ -29,7 +29,9 @@ of another.
 
 ## Ground rules
 
-- Do not add any dependency, script, or workflow that fetches or embeds private Worldant source.
+- Do not add any dependency, script, or ordinary CI workflow that fetches or embeds private
+  Worldant source. The protected `build-release.yml` workflow is the sole release-authority
+  exception and checks out only its explicit `source_ref`.
 - Installer changes must preserve fail-closed behavior — new network or filesystem paths must route
   through the tested verification core in `packages/cli/installer-core.mjs`.
 - Public CI must never execute contributor-controlled code with publishing credentials and must not

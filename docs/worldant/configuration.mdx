@@ -1,31 +1,36 @@
 ---
 title: Configuration
-description: Snapshot-pinned settings, middleware, request headers, and kernel event policy.
+description: Application and host identity, native platform settings, middleware, and event policy.
 ---
 
-The root `worldant.ts` exports static node settings and middleware. Build and direct run may omit
-it, but `worldant serve` requires a complete `wire` object:
+The root `worldant.ts` exports explicit application, world, application-node, host-node, platform,
+and middleware settings. `worldant serve` requires a complete native platform configuration:
 
 ```ts
 import type { NodeConfig } from "worldant"
 
 export default {
-  name: "todo",
-  wire: {
-    nodeName: "todo_local",
-    bindAddress: "127.0.0.1",
-    port: 8787,
-    webTransport: true,
-    webSocket: true,
+  application: "todo",
+  world: "todo",
+  node: { name: "todo-app" },
+  host: { name: "todo-host" },
+  platform: {
+    kind: "native",
+    wire: {
+      bindAddress: "127.0.0.1",
+      port: 8787,
+      webTransport: true,
+      webSocket: true,
+    },
+    pgpaw: {
+      builtin: true,
+      dataDir: ".worldant/data",
+      databaseName: "postgres",
+      minConnections: 0,
+      maxConnections: 2,
+    },
+    runtime: { maxWorkflowWorkers: 2 },
   },
-  pgpaw: {
-    builtin: true,
-    dataDir: ".worldant/data",
-    databaseName: "postgres",
-    minConnections: 0,
-    maxConnections: 2,
-  },
-  maxWorkflowWorkers: 2,
   middleware: [
     async function auth(request, context, next) {
       if (!request.headers.authorization) throw new Error("unauthorized")
@@ -36,20 +41,20 @@ export default {
 ```
 
 The CLI keeps runtime settings out of flags. Runtime settings belong in `worldant.ts`.
-`name` sets the single-app namespace. If omitted, Worldant converts the world directory name to a
-valid identifier, for example `toy-store` becomes `toy_store`.
+`application` owns public callable addresses. `world` identifies the compiled world. `node` is the
+application node that owns the Worldant profile, while `host` is the caller-owned network node to
+which Worldant links it.
 
-`pgpaw` is the single source of truth for database configuration and is a strict union. Set
+`platform.pgpaw` is the single source of truth for database configuration and is a strict union. Set
 `builtin: true` with `dataDir`, `databaseName`, `minConnections`, and `maxConnections` to run the
 embedded PostgreSQL engine. `databaseName` selects the database created and used by that embedded
 engine. Set `builtin: false` with `remoteAddress`, `minConnections`, and `maxConnections` to connect
 to remote PostgreSQL; `remoteAddress` is the DSN, and its database component selects the remote
 database. Embedded-only and remote-only fields cannot be mixed.
 
-`wire.nodeName` is the deployment topology identity. It may equal `name`, but changing it does not
-change the world subject or callable addresses. `wire.bindAddress` must be an IPv4 or IPv6 literal,
-`wire.port` is shared by enabled transports and may be `0` for an ephemeral shared port, and at
-least one of `wire.webTransport` and `wire.webSocket` must be true. Unknown or incomplete settings
+`platform.wire.bindAddress` must be an IPv4 or IPv6 literal, `platform.wire.port` is shared by
+enabled transports and may be `0` for an ephemeral shared port, and at least one of
+`platform.wire.webTransport` and `platform.wire.webSocket` must be true. Unknown or incomplete settings
 fail closed. WebSocket enables the complete TCP surface, including HTTP knowledge routes; disabling
 it leaves those routes unavailable even when WebTransport is enabled.
 

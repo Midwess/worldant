@@ -10,12 +10,7 @@
   },
   "include": [
     "worldant.ts",
-    "commands/**/*.ts",
-    "workflows/**/*.ts",
-    "lib/**/*.ts",
-    "tests/**/*.ts",
-    "apps/**/*.ts",
+    "src/**/*.ts",
     "generated/**/*.ts"
   ]
 }
-

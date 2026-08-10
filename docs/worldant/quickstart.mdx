@@ -1,6 +1,6 @@
 ---
 title: Quickstart
-description: Create, build, serve, and call a minimal Worldant world.
+description: Create, check, serve, and call a minimal Worldant world.
 ---
 
 Create a world:
@@ -15,17 +15,14 @@ cd todo
 ```text
 todo/
   worldant.ts
-  migrations/
-  commands/
-  workflows/
-    steps/
-  lib/
-  tests/
+  src/
+    main.ts
+  generated/
 ```
 
-The generated `worldant.ts` has separate world and wire node identities plus explicit bind address,
-port, WebTransport, and WebSocket settings. The normalized defaults are equal, but they serve
-different purposes: `name` identifies callable addresses and `wire.nodeName` identifies this node.
+The generated `worldant.ts` names the application, world, application node, and host node
+separately. Native-only PgPaw, listener, module, and runtime settings live under
+`platform: { kind: "native", ... }`.
 
 Add a migration under `migrations/0001_init.sql`:
 
@@ -38,7 +35,8 @@ create table todo_items (
 );
 ```
 
-Add a Command under `commands/add.ts`:
+Replace `src/main.ts` with a Command. The file path is organizational; the directive declares the
+artifact and the `add` binding supplies its name:
 
 ```ts
 import { session } from "worldant/client"
@@ -53,20 +51,21 @@ async function add(input: { title: string }) {
 }
 ```
 
-Build and serve:
+Check and serve:
 
 ```bash
-worldant build
+worldant check
 worldant serve
 ```
 
-Serve requires the complete generated `wire` object. It publishes a snapshot, loads configuration
-from that snapshot, and binds every enabled transport before reporting readiness.
+Serve validates the complete generated native platform configuration. It publishes a snapshot,
+loads configuration from that snapshot, links the application node to the host node, and binds each
+enabled transport on the host before reporting readiness.
 
 Call it:
 
 ```ts
-import { createWorld } from "worldant/client"
+import { createWorld } from "@midwess/worldant/client"
 
 const world = createWorld({ url: "ws://127.0.0.1:8787/__worldant/v1/ws" })
 const todo = await world.todo.add({ title: "Buy milk" }, { key: "todo:add:buy-milk" })

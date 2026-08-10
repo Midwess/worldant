@@ -19,6 +19,8 @@ export function releaseAssetNames(version) {
     `worldant-${version}-darwin-arm64.tar.gz`,
     `worldant-${version}-linux-arm64.tar.gz`,
     `worldant-${version}-linux-x64.tar.gz`,
+    `worldant-${version}.tgz`,
+    `midwess-worldant-cli-${version}.tgz`,
   ]
 }
 
@@ -57,11 +59,6 @@ function run(command, args, options = {}) {
   if (result.status !== 0) {
     throw new Error(`${command} ${args.join(" ")} failed with exit ${result.status}`)
   }
-}
-
-function publishedVersions(name) {
-  const parsed = JSON.parse(capture("npm", ["view", name, "versions", "--json"]))
-  return new Set(Array.isArray(parsed) ? parsed : [parsed])
 }
 
 function release(version) {
@@ -110,33 +107,50 @@ async function main() {
   const npmUser = capture("npm", ["whoami"])
   console.log(`publish-npm: authenticated to npm as ${npmUser}.`)
 
-  const libraryPublished = publishedVersions(library.name).has(version)
-  const cliPublished = publishedVersions(cli.name).has(version)
-  let temporary
+  const temporary = mkdtempSync(join(tmpdir(), "worldant-publish-"))
 
   try {
-    if (libraryPublished) {
+    for (const name of [`worldant-${version}.tgz`, `midwess-worldant-cli-${version}.tgz`]) {
+      run("gh", [
+        "release",
+        "download",
+        `v${version}`,
+        "--repo",
+        repository,
+        "--pattern",
+        name,
+        "--dir",
+        temporary,
+      ])
+    }
+    const libraryTarball = join(temporary, `worldant-${version}.tgz`)
+    const cliTarball = join(temporary, `midwess-worldant-cli-${version}.tgz`)
+    const stateScript = join(publicRoot, "scripts", "npm-release-state.mjs")
+    const libraryState = capture(process.execPath, [
+      stateScript,
+      library.name,
+      version,
+      libraryTarball,
+    ])
+    const cliState = capture(process.execPath, [stateScript, cli.name, version, cliTarball])
+
+    if (libraryState === "already-published") {
       console.log(`publish-npm: ${library.name}@${version} already exists; skipping.`)
     } else {
-      temporary = mkdtempSync(join(tmpdir(), "worldant-publish-"))
-      const tarball = join(temporary, `worldant-${version}.tgz`)
-      run("bash", [join(sourceRoot, "scripts", "package-npm.sh"), version, tarball], {
-        cwd: sourceRoot,
-      })
-      run("npm", ["publish", tarball, "--access", "public"], { cwd: publicRoot })
+      run("npm", ["publish", libraryTarball, "--access", "public"], { cwd: publicRoot })
       waitForPublication(library.name, version)
       console.log(`publish-npm: published ${library.name}@${version}.`)
     }
 
-    if (cliPublished) {
+    if (cliState === "already-published") {
       console.log(`publish-npm: ${cli.name}@${version} already exists; skipping.`)
     } else {
-      run("npm", ["publish", "--access", "public"], { cwd: cliRoot })
+      run("npm", ["publish", cliTarball, "--access", "public"], { cwd: cliRoot })
       waitForPublication(cli.name, version)
       console.log(`publish-npm: published ${cli.name}@${version}.`)
     }
   } finally {
-    if (temporary) rmSync(temporary, { recursive: true, force: true })
+    rmSync(temporary, { recursive: true, force: true })
   }
 
   if (candidate.isDraft) {

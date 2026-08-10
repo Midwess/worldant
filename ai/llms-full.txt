@@ -4,21 +4,17 @@ This file expands the canonical AI entrypoint in `worldant.llms.txt`.
 
 ## Concepts
 
-Worldant worlds are ordinary directories. The single-app layout uses root `commands/`,
-`workflows/`, `workflows/steps/`, `migrations/`, `lib/`, and `tests/`. Existing multi-app worlds can
-use `apps/<app>/...`.
+Worldant worlds are ordinary directories with one or more bounded source roots. Directories are
+organizational and one source module may mix presentation, Commands, Workflows, internal Steps, and
+helpers. Artifact identity is the configured application plus the declared binding name, so moving
+a declaration without renaming it does not change identity.
 
-Single-app worlds use `worldant.ts` `name` as the app namespace when set. Without it, Worldant
-normalizes the world directory name into a valid identifier. In multi-app worlds, the app directory
-name is the app namespace.
-
-Identity comes from paths:
+Roles come from directives or their equivalent wrappers:
 
 ```text
-commands/add.ts                         -> Command <world>.add
-workflows/sendReminder.ts               -> Workflow <world>.sendReminder
-workflows/steps/loadRecipients.ts       -> Step <world>.loadRecipients (internal)
-apps/todo/commands/add.ts               -> Command todo.add
+"worldant::command" / defineCommand()   -> public immediate Command
+"worldant::workflow" / defineWorkflow() -> public durable Workflow
+"worldant::step" / defineStep()         -> internal Workflow checkpoint
 ```
 
 ## Runtime Boundaries
@@ -41,7 +37,7 @@ Workflows may only import deterministic orchestration capabilities from `worldan
 belongs in Steps:
 
 ```ts
-// workflows/remind.ts
+// src/reminders/remind.ts
 import { sleep } from "worldant"
 import { loadItem } from "./steps/loadItem.ts"
 import { sendReminder } from "./steps/sendReminder.ts"
@@ -56,7 +52,7 @@ async function remind(input: { id: number; delayMs: number }) {
 ```
 
 ```ts
-// workflows/steps/loadItem.ts
+// src/reminders/loadItem.ts
 import { session } from "worldant/client"
 
 type SqlReply<Row> = { command: string; rows: Row[]; rowsAffected: number }
@@ -72,7 +68,7 @@ async function loadItem(input: { id: number }) {
 ```
 
 ```ts
-// workflows/steps/sendReminder.ts
+// src/reminders/sendReminder.ts
 import { emit } from "worldant"
 
 async function sendReminder(input: { id: number; title: string }) {
@@ -89,39 +85,44 @@ On replay a committed Step returns its stored output without repeating database 
 
 ## Configuration
 
-The root `worldant.ts` exports static settings and middleware. Build and direct run may omit it,
-but serve requires complete wire settings:
+The root `worldant.ts` exports explicit application, world, application-node, host-node, platform,
+and middleware settings. Serve requires complete native platform settings:
 
 ```ts
 import type { NodeConfig } from "worldant"
 
 export default {
-  name: "todo",
-  wire: {
-    nodeName: "todo_local",
-    bindAddress: "127.0.0.1",
-    port: 8787,
-    webTransport: true,
-    webSocket: true,
-  },
-  pgpaw: {
-    builtin: true,
-    dataDir: ".worldant/data",
-    databaseName: "postgres",
-    minConnections: 0,
-    maxConnections: 2,
+  application: "todo",
+  world: "todo",
+  node: { name: "todo-app" },
+  host: { name: "todo-host" },
+  platform: {
+    kind: "native",
+    wire: {
+      bindAddress: "127.0.0.1",
+      port: 8787,
+      webTransport: true,
+      webSocket: true,
+    },
+    pgpaw: {
+      builtin: true,
+      dataDir: ".worldant/data",
+      databaseName: "postgres",
+      minConnections: 0,
+      maxConnections: 2,
+    },
   },
   middleware: [],
 } satisfies NodeConfig
 ```
 
-`name` is the stable world subject and callable namespace. `wire.nodeName` is an independent
-deployment topology identity. The bind address must be an IP literal, both transport booleans must
-be explicit, and at least one transport must be enabled. WebSocket controls the complete TCP
+`application` is the callable namespace, `world` identifies the compiled world, `node` owns the
+Worldant profile, and `host` owns network listeners. The bind address must be an IP literal, both
+transport booleans must be explicit, and at least one transport must be enabled. WebSocket controls the complete TCP
 surface, including `/__worldant/v1/ws`, `/__worldant/v1/llms.txt`, and HTTP knowledge routes.
 WebTransport carries the wire profile, including knowledge, without enabling those HTTP routes.
 
-`pgpaw` is the only database configuration surface and is a strict union. For embedded PostgreSQL,
+`platform.pgpaw` is the only database configuration surface and is a strict union. For embedded PostgreSQL,
 use `builtin: true` with `dataDir`, `databaseName`, `minConnections`, and `maxConnections`;
 `databaseName` selects the embedded database. For remote PostgreSQL, use `builtin: false` with
 `remoteAddress`, `minConnections`, and `maxConnections`; `remoteAddress` is the DSN and selects the

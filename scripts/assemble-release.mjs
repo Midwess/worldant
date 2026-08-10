@@ -3,8 +3,9 @@ import { readFileSync, readdirSync, writeFileSync } from "node:fs"
 import { basename, join } from "node:path"
 
 const version = process.env.VERSION
-const sourceRef = process.env.SOURCE_REF
+const sourceSha = process.env.SOURCE_SHA
 if (!/^\d+\.\d+\.\d+$/.test(version || "")) throw new Error("VERSION must be exact semver")
+if (!/^[0-9a-f]{40}$/.test(sourceSha || "")) throw new Error("SOURCE_SHA must be an exact commit")
 const dir = "release-assets"
 const digest = (path) => createHash("sha256").update(readFileSync(path)).digest("hex")
 const artifacts = {}
@@ -20,7 +21,7 @@ const checksums = Object.entries(artifacts).map(([, item]) => `${item.sha256}  $
 writeFileSync(join(dir, "checksums.txt"), checksums)
 const sbom = { spdxVersion: "SPDX-2.3", dataLicense: "CC0-1.0", SPDXID: "SPDXRef-DOCUMENT", name: `worldant-${version}`, documentNamespace: `https://github.com/Midwess/worldant/releases/tag/v${version}`, packages: [] }
 writeFileSync(join(dir, "sbom.spdx.json"), JSON.stringify(sbom, null, 2) + "\n")
-const sourceRevision = createHash("sha256").update(sourceRef).digest("hex").slice(0, 24)
+const sourceRevision = createHash("sha256").update(sourceSha).digest("hex").slice(0, 24)
 const provenance = { _type: "https://in-toto.io/Statement/v1", subject: Object.entries(artifacts).map(([name, item]) => ({ name, digest: { sha256: item.sha256 } })), predicateType: "https://slsa.dev/provenance/v1", predicate: { buildDefinition: { buildType: "https://github.com/Midwess/worldant/.github/workflows/build-release.yml", externalParameters: { sourceRevision } }, runDetails: { builder: { id: "https://github.com/Midwess/worldant/.github/workflows/build-release.yml@refs/heads/main" } } } }
 writeFileSync(join(dir, "provenance.intoto.jsonl"), JSON.stringify(provenance) + "\n")
 const evidence = (name, mediaType) => ({ url: `https://github.com/Midwess/worldant/releases/download/v${version}/${name}`, sha256: digest(join(dir, name)), mediaType })

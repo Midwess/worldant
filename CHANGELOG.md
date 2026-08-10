@@ -9,15 +9,36 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.2.1] — 2026-08-10
+
 ### Added
-- The unified `@midwess/worldant` npm package with authoring, client, React, Vite, browser compiler, and
-  TypeScript checker assets under one version.
+- Browser applications now own a linked Worldant application node while the caller-owned host node
+  remains available for networking and other application nodes.
+- Browser presentation compilation now rejects native-only Bun and Node globals and imports.
+- Browser compiler source workspaces are isolated by world identity while legacy OPFS source is
+  migrated into the owning workspace.
 
 ### Changed
-- The native npm installer is now named `@midwess/worldant-cli`; its installed executable remains
+- Browser generation activation is race-safe, explicit isolate handles fail visibly when inactive,
+  and one application admits only one mounted compiler owner at a time.
+- Browser configuration is copied and deeply frozen at construction, including pins and lint policy.
+- The AI chat example isolates bounded conversation state and event delivery per application node.
+- Documentation and templates now describe directive-based artifacts, `worldant check`, linked node
+  ownership, and nested native platform configuration.
+- Release publication resolves one immutable source commit, verifies finalized assets by exact
+  digest, and refuses to reuse an npm version whose registry integrity differs from the built tarball.
+
+## [1.2.0] — 2026-08-10
+
+### Added
+- The unified `@midwess/worldant` npm package with authoring, client, React, Vite, browser compiler,
+  and TypeScript checker assets under one version.
+- The native npm installer is named `@midwess/worldant-cli`; its installed executable remains
   `worldant`.
-- Release CI packs `@midwess/worldant` from the exact private source revision and verifies both scoped npm
-  packages before finalizing a release.
+
+### Changed
+- Release CI packs `@midwess/worldant` from the exact private source revision and verifies both
+  scoped npm packages before finalizing a release.
 
 ## [1.1.0] — 2026-07-18
 
@@ -99,7 +120,10 @@ prior private release scheme; those historical tags and releases remain with the
 and are **not** republished here. `1.0.0` marks the start of the signed, immutable public
 distribution — it is not a continuation of the private `0.x` source-release line.
 
-[Unreleased]: https://github.com/Midwess/worldant/compare/v1.0.8...HEAD
+[Unreleased]: https://github.com/Midwess/worldant/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/Midwess/worldant/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/Midwess/worldant/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/Midwess/worldant/compare/v1.0.8...v1.1.0
 [1.0.8]: https://github.com/Midwess/worldant/compare/v1.0.7...v1.0.8
 [1.0.7]: https://github.com/Midwess/worldant/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/Midwess/worldant/compare/v1.0.5...v1.0.6

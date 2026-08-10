@@ -6,13 +6,13 @@ description: Running a built world and supervising durable work.
 `worldant serve` builds the current world, publishes a snapshot, starts the data plane, serves the
 wire endpoint, and runs Workflow workers when the snapshot contains Workflows.
 
-Configuration belongs in `worldant.ts`, including the required serve-time `wire` object, data
-plane `pgpaw` object, scheduler limits, and worker counts. The strict `pgpaw` union contains either
+Configuration belongs in `worldant.ts`, including application and host identities plus the
+serve-time `platform.wire`, `platform.pgpaw`, and `platform.runtime` objects. The strict PgPaw union contains either
 embedded settings (`builtin: true`, `dataDir`, `databaseName`, and pool limits) or remote settings
-(`builtin: false`, a DSN in `remoteAddress`, and pool limits). `wire` separates the
-stable world `name` from deployment `nodeName`, requires an IP-literal bind address and explicit
-transport booleans, and uses one port for WebSocket and WebTransport. At least one transport must be
-enabled.
+(`builtin: false`, a DSN in `remoteAddress`, and pool limits). The application node owns the
+Worldant profile and callable namespace; the host node owns public listeners. Wire settings require
+an IP-literal bind address and explicit transport booleans and use one port for WebSocket and
+WebTransport. At least one transport must be enabled.
 
 Serve loads final settings and middleware from the newly published snapshot. Configuration changes
 do not affect a live process; stop and rerun serve to publish and apply them. All enabled transports
