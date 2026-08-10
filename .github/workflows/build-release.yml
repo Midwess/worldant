@@ -1,9 +1,8 @@
 name: Build and release Worldant
 
-# Builds the worldant CLI from private source on every supported platform, bootstrapping the
-# embedded Bun engine (vendor/bun C++ objects) and running the engine test suite per platform
-# before packaging. The release job (sign + npm + GitHub Release) runs only when run_release is
-# true, so platform bring-up can iterate on build+test without publishing anything.
+# Builds the worldant CLI from private source on every supported platform and bootstraps the
+# embedded Bun engine (vendor/bun C++ objects). The optional engine suite runs only when test is
+# true. The release job (sign + npm + GitHub Release) runs only when run_release is true.
 
 on:
   workflow_dispatch:
@@ -16,8 +15,13 @@ on:
         description: Private source branch, tag, or SHA
         required: true
         default: main
+      test:
+        description: Run the optimized engine suite on every supported platform
+        type: boolean
+        required: true
+        default: false
       run_release:
-        description: Sign, publish to npm, and create the GitHub Release (leave false to only build+test)
+        description: Sign, publish to npm, and create the GitHub Release
         type: boolean
         required: true
         default: false
@@ -285,6 +289,7 @@ jobs:
         run: bash source/scripts/package-npm.sh "$VERSION" "$GITHUB_WORKSPACE/worldant-$VERSION.tgz"
 
       - name: Test the engine on this platform
+        if: ${{ inputs.test == true }}
         working-directory: source
         env:
           CARGO_INCREMENTAL: "0"

@@ -52,6 +52,11 @@ test("release workflow builds and packages the pinned checker for every supporte
     workflow,
     /cargo test --release --target "\$TARGET" --workspace --exclude world-browser --exclude integration-test/,
   )
+  assert.match(workflow, /test:\n\s+description: Run the optimized engine suite/)
+  assert.match(
+    workflow,
+    /- name: Test the engine on this platform\n\s+if: \$\{\{ inputs\.test == true \}\}/,
+  )
   assert.doesNotMatch(workflow, /world-host|world-share|world-build/)
 })
 
