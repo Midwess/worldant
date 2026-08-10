@@ -38,7 +38,7 @@ jobs:
       source_sha: ${{ steps.source.outputs.sha }}
     steps:
       - name: Resolve private source ref once
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Midwess/worldant-internal
           ref: ${{ inputs.source_ref }}
@@ -78,12 +78,12 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Check out public release tooling
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           path: public
 
       - name: Check out private release source
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Midwess/worldant-internal
           ref: ${{ needs.resolve.outputs.source_sha }}
@@ -350,7 +350,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: release
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af
         with:
           node-version: 22
