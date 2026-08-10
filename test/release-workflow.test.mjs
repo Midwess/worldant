@@ -62,7 +62,7 @@ test("release workflow builds and packages the pinned checker for every supporte
 
 test("release workflow publishes separate library and CLI packages", () => {
   assert.equal(cliManifest.name, "@midwess/worldant-cli")
-  assert.equal(cliManifest.version, "1.2.0")
+  assert.equal(cliManifest.version, "1.2.1")
   assert.equal(cliManifest.bin.worldant, "bin/worldant.js")
   assert.match(workflow, /source\/scripts\/package-npm\.sh/)
   assert.match(workflow, /worldant-\$VERSION\.tgz/)
