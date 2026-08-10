@@ -382,7 +382,7 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           published="$(npm view @midwess/worldant@"$VERSION" version 2>/dev/null || true)"
-          [ "$published" = "$VERSION" ] || npm publish "release-assets/worldant-$VERSION.tgz" --access public --provenance
+          [ "$published" = "$VERSION" ] || npm publish "./release-assets/worldant-$VERSION.tgz" --access public --provenance
       - name: Publish npm CLI installer
         working-directory: packages/cli
         env:
