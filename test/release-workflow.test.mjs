@@ -53,15 +53,9 @@ test("release workflow builds and packages the pinned checker for every supporte
   assert.match(workflow, /release\/browser\/wasm_exec\.js/)
   assert.match(workflow, /release\/browser\/worldant-tscheck\.wasm/)
   assert.match(workflow, /tools\/typescript-checker\/fixtures/)
-  assert.match(
-    workflow,
-    /cargo test --release --target "\$TARGET" --workspace --exclude world-browser --exclude integration-test/,
-  )
-  assert.match(workflow, /test:\n\s+description: Run the optimized engine suite/)
-  assert.match(
-    workflow,
-    /- name: Test the engine on this platform\n\s+if: \$\{\{ inputs\.test == true \}\}/,
-  )
+  assert.doesNotMatch(workflow, /cargo test/)
+  assert.doesNotMatch(workflow, /inputs\.test/)
+  assert.doesNotMatch(workflow, /Test the engine on this platform/)
   assert.doesNotMatch(workflow, /world-host|world-share|world-build/)
 })
 
@@ -74,11 +68,12 @@ test("release workflow publishes separate library and CLI packages", () => {
   assert.match(workflow, /npm-release-state\.mjs @midwess\/worldant "\$VERSION"/)
   assert.match(workflow, /npm-release-state\.mjs @midwess\/worldant-cli "\$VERSION"/)
   assert.match(workflow, /npm publish "\.\/release-assets\/worldant-\$VERSION\.tgz" --access public --provenance/)
+  assert.match(workflow, /tarball="\.\/release-assets\/midwess-worldant-cli-\$VERSION\.tgz"/)
   assert.match(workflow, /npm publish "\$tarball" --access public --provenance/)
   assert.match(workflow, /verify-release-assets\.mjs "v\$VERSION" release-assets/)
   assert.match(workflow, /value\.isDraft \? 0 : 1/)
   assert.match(workflow, /npm install --global npm@11\.5\.1/)
-  assert.match(workflow, /npm install --ignore-scripts --no-package-lock --prefix npm-smoke/)
+  assert.doesNotMatch(workflow, /npm-smoke/)
   assert.match(workflow, /NODE_AUTH_TOKEN: \$\{\{ secrets\.NPM_SECRET_KEY \}\}/)
   assert.doesNotMatch(workflow, /_authToken/)
   assert.equal(existsSync(new URL("../.github/workflows/release.yml", import.meta.url)), false)

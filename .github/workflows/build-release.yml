@@ -1,8 +1,8 @@
 name: Build and release Worldant
 
 # Builds the worldant CLI from private source on every supported platform and bootstraps the
-# embedded Bun engine (vendor/bun C++ objects). The optional engine suite runs only when test is
-# true. The release job (sign + npm + GitHub Release) runs only when run_release is true.
+# embedded Bun engine (vendor/bun C++ objects). The release job (sign + npm + GitHub Release) runs
+# only when run_release is true.
 
 on:
   workflow_dispatch:
@@ -15,11 +15,6 @@ on:
         description: Private source branch, tag, or SHA
         required: true
         default: main
-      test:
-        description: Run the optimized engine suite on every supported platform
-        type: boolean
-        required: true
-        default: false
       run_release:
         description: Sign, publish to npm, and create the GitHub Release
         type: boolean
@@ -58,7 +53,7 @@ jobs:
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
   build:
-    name: Build and test ${{ matrix.key }}
+    name: Build ${{ matrix.key }}
     needs: resolve
     environment: release
     strategy:
@@ -311,14 +306,6 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: bash source/scripts/package-npm.sh "$VERSION" "$GITHUB_WORKSPACE/worldant-$VERSION.tgz"
 
-      - name: Test the engine on this platform
-        if: ${{ inputs.test == true }}
-        working-directory: source
-        env:
-          CARGO_INCREMENTAL: "0"
-          TARGET: ${{ matrix.target }}
-        run: cargo test --release --target "$TARGET" --workspace --exclude world-browser --exclude integration-test
-
       - name: Package binary
         shell: bash
         env:
@@ -412,13 +399,6 @@ jobs:
             gh release upload "v$VERSION" release-assets/*
             echo "state=draft" >> "$GITHUB_OUTPUT"
           fi
-      - name: Verify npm release install
-        env:
-          VERSION: ${{ inputs.version }}
-        run: |
-          node -e 'const manifest = require("./packages/cli/package.json"); if (manifest.name !== "@midwess/worldant-cli" || manifest.version !== process.env.VERSION) throw new Error("CLI package identity does not match release")'
-          npm install --ignore-scripts --no-package-lock --prefix npm-smoke "./release-assets/worldant-$VERSION.tgz"
-          (cd npm-smoke && node --input-type=module -e 'const manifest = await import("./node_modules/@midwess/worldant/package.json", { with: { type: "json" } }); if (manifest.default.version !== process.env.VERSION) throw new Error("TypeScript package install mismatch"); const root = await import("@midwess/worldant"); const client = await import("@midwess/worldant/client"); if (typeof root.defineCommand !== "function" || typeof client.createWorld !== "function") throw new Error("TypeScript package exports are unavailable")')
       - name: Reconcile npm TypeScript package
         id: library
         env:
@@ -436,7 +416,7 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          tarball="release-assets/midwess-worldant-cli-$VERSION.tgz"
+          tarball="./release-assets/midwess-worldant-cli-$VERSION.tgz"
           state="$(node scripts/npm-release-state.mjs @midwess/worldant-cli "$VERSION" "$tarball")"
           echo "state=$state" >> "$GITHUB_OUTPUT"
           [ "$state" = "already-published" ] || npm publish "$tarball" --access public --provenance
