@@ -6,6 +6,7 @@
   "license": "Apache-2.0",
   "workspaces": ["packages/cli"],
   "scripts": {
+    "publish": "node scripts/publish-npm.mjs",
     "test": "node --test test/*.test.mjs",
     "validate:schema": "node scripts/validate-schema.mjs",
     "scan:disclosure": "node scripts/scan-disclosure.mjs",
